@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="use_lidar" default="false" />
+  <arg name="launch_rviz" default="false" />
+  <arg name="rviz_config" default="$(find outdoor_waypoint_nav)/rviz_config/real.rviz" />
+  <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="goal_frame" default="map" />
+  <arg name="waypoint_marker_frame" default="$(arg goal_frame)" />
+  <arg name="waypoint_marker_topic" default="/outdoor_waypoint_nav/collected_waypoints" />
+  <arg name="waypoint_marker_scale" default="0.7" />
+  <arg name="waypoint_marker_activation_radius" default="0.675" />
+
+  <!-- This launch assumes /outdoor_waypoint_nav/odometry/filtered_map and the utm->map transform are already available. -->
+  <include file="$(find warthog_slam)/launch/test_move_base.launch">
+    <arg name="use_lidar" value="$(arg use_lidar)" />
+  </include>
+
+  <!-- safety_node bypassed: move_base now publishes directly to /cmd_vel. -->
+  <!-- <include file="$(find outdoor_waypoint_nav)/launch/include/test_safety_node.launch" /> -->
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/test_send_goals.launch">
+    <arg name="coordinates_file" value="$(arg waypoint_file)" />
+    <arg name="goal_frame" value="$(arg goal_frame)" />
+    <arg name="waypoint_marker_frame" value="$(arg waypoint_marker_frame)" />
+    <arg name="waypoint_marker_topic" value="$(arg waypoint_marker_topic)" />
+    <arg name="waypoint_marker_scale" value="$(arg waypoint_marker_scale)" />
+    <arg name="waypoint_marker_activation_radius" value="$(arg waypoint_marker_activation_radius)" />
+  </include>
+
+  <node if="$(arg launch_rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" />
+
+</launch>

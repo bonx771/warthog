@@ -1,0 +1,24 @@
+<!-- calibrate.launch
+     Run ONCE (or after hardware changes) with robot completely still.
+     Saves bias to config/gyro_bias.yaml automatically.
+
+     Usage:
+       roslaunch imu_bias_compensator calibrate.launch
+       roslaunch imu_bias_compensator calibrate.launch duration:=90
+-->
+<launch>
+  <arg name="duration"   default="60"/>
+  <arg name="imu_topic"  default="/imu/data_raw"/>
+
+  <node pkg="imu_bias_compensator"
+        type="gyro_calibrator.py"
+        name="gyro_bias_calibrator"
+        output="screen"
+        required="true">
+
+    <param name="duration"   value="$(arg duration)"/>
+    <param name="imu_topic"  value="$(arg imu_topic)"/>
+    <param name="output_path"
+           value="$(find imu_bias_compensator)/config/gyro_bias.yaml"/>
+  </node>
+</launch>

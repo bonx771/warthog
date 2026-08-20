@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Scenario 3: GNSS works normally, is absent after WP2, then resumes after
+       the configured dead-reckoning distance. During the outage no NavSatFix
+       message is sent to navsat_transform. -->
+  <arg name="input_topic" default="/gps/fix" />
+  <arg name="output_topic" default="/gps/fix_off" />
+  <arg name="distance_odom_topic" default="/outdoor_waypoint_nav/odometry/filtered_odom" />
+  <arg name="reached_waypoint_topic" default="/outdoor_waypoint_nav/waypoint_reached_index" />
+  <arg name="start_after_waypoint_index" default="2" />
+  <arg name="outage_distance_m" default="20.0" />
+
+  <node pkg="outdoor_waypoint_nav"
+        type="gnss_outage_gate.py"
+        name="gnss_outage_gate"
+        output="screen">
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="output_topic" value="$(arg output_topic)" />
+    <param name="distance_odom_topic" value="$(arg distance_odom_topic)" />
+    <param name="reached_waypoint_topic" value="$(arg reached_waypoint_topic)" />
+    <param name="start_after_waypoint_index" value="$(arg start_after_waypoint_index)" type="int" />
+    <param name="outage_distance_m" value="$(arg outage_distance_m)" type="double" />
+    <param name="active_topic" value="/outdoor_waypoint_nav/gnss_outage/active" />
+    <param name="distance_topic" value="/outdoor_waypoint_nav/gnss_outage/distance_m" />
+  </node>
+</launch>

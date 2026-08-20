@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="use_gps" default="true" />
+  <arg name="gps_fix_topic" default="/gps/fix" />
+  <arg name="ekf_odom_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_odom.yaml" />
+  <arg name="ekf_map_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_map.yaml" />
+
+  <group ns="/outdoor_waypoint_nav">
+    <rosparam if="$(arg use_gps)" command="load" file="$(find outdoor_waypoint_nav)/params/navsat_params.yaml" />
+
+    <node pkg="robot_localization"
+          type="ekf_localization_node"
+          name="ekf_se_odom"
+          clear_params="true">
+      <rosparam command="load" file="$(arg ekf_odom_params)" />
+    </node>
+
+    <node pkg="topic_tools"
+          type="relay"
+          name="ekf_odom_for_map_filter"
+          args="/outdoor_waypoint_nav/odometry/filtered /outdoor_waypoint_nav/odometry/filtered_odom" />
+
+<node pkg="robot_localization" type="ekf_localization_node" name="ekf_se_map" clear_params="true">
+      <rosparam command="load" file="$(arg ekf_map_params)" />
+      <remap from="odometry/filtered" to="odometry/filtered_map" />
+    </node>
+
+
+    <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="odometry/filtered_map"/>
+      <remap from="gps/fix" to="$(arg gps_fix_topic)" />
+      <remap from="imu/data" to="/imu/data_new" />
+    </node>
+
+    <node pkg="outdoor_waypoint_nav"
+          type="stationary_gps_gate.py"
+          name="stationary_gps_gate"
+          output="screen">
+      <param name="gps_odom_topic" value="odometry/gps" />
+      <param name="motion_odom_topic" value="odometry/filtered_odom" />
+      <param name="output_topic" value="odometry/gps_filter" />
+      <param name="linear_stop_threshold" value="0.015" />
+      <param name="angular_stop_threshold" value="0.005" />
+      <param name="stop_confirm_duration" value="1.5" />
+      <param name="stationary_xy_covariance" value="4.0" />
+      <param name="stationary_z_covariance" value="9.0" />
+      <param name="stationary_hold_xy_covariance" value="100.0" />
+      <param name="stationary_hold_z_covariance" value="100.0" />
+      <param name="stationary_collection_duration" value="5.0" />
+      <param name="stationary_correction_publish_count" value="2" />
+      <param name="stationary_sample_window" value="50" />
+      <param name="stationary_min_samples" value="30" />
+      <param name="stationary_outlier_rejection_m" value="2.0" />
+      <param name="release_blend_duration" value="1.0" />
+      <param name="copy_motion_orientation" value="true" />
+    </node>
+
+    <node pkg="outdoor_waypoint_nav"
+          type="encoder_odometry_node.py"
+          name="encoder_odometry_node"
+          output="screen">
+      <param name="wheel_odom_topic" value="/warthog_velocity_controller/odom" />
+      <param name="filtered_odom_topic" value="odometry/filtered" />
+      <param name="output_topic" value="/odometry/encoder" />
+      <param name="imu_topic" value="/imu/data_new" />
+      <param name="align_yaw_to_imu" value="true" />
+      <param name="imu_anchor_timeout_sec" value="5.0" />
+    </node>
+
+    <node pkg="outdoor_waypoint_nav"
+          type="path_node.py"
+          name="path_node"
+          output="screen">
+      <param name="encoder_odom_topic" value="/odometry/encoder" />
+      <param name="encoder_path_topic" value="/odometry/encoder_path" />
+      <param name="filtered_odom_topic" value="odometry/filtered" />
+      <param name="filtered_path_topic" value="odometry/filtered_path" />
+    </node>
+
+
+
+  </group>
+
+</launch>

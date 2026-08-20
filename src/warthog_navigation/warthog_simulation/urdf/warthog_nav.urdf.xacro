@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="example">
+
+  <!-- WARTHOG -->
+  <xacro:include filename="$(find warthog_description)/urdf/warthog.urdf.xacro"/>
+
+  <!-- Support -->
+  <xacro:include filename="$(find warthog_simulation)/urdf/warthog_support.urdf.xacro"/>
+
+  <!-- LiDAR -->
+  <!-- <xacro:include filename="$(find velodyne_description)/urdf/VLP-16.urdf.xacro"/>
+  <xacro:VLP-16 parent="top_chassis_link" name="velodyne" topic="/velodyne_points" hz="50" samples="720" gpu="true">
+    <origin xyz="0.4 0.0 0.4" rpy="0 0 0" />
+  </xacro:VLP-16> -->
+
+  <!-- /front/scan is provided by warthog_description/urdf/warthog.gazebo. -->
+
+  <!-- Realsense D435 -->
+  <xacro:include filename="$(find warthog_simulation)/urdf/realsense.urdf.xacro"/>
+
+</robot>

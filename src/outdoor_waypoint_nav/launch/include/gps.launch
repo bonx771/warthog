@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="outdoor_waypoint_nav" type="gps_covariance_relay.py" name="gps_covariance_relay" output="screen">
+    <param name="input_topic" value="/gps/fix" />
+    <param name="output_topic" value="/gps/fix_with_covariance" />
+  </node>
+
+</launch>

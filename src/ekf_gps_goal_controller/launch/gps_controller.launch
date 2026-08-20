@@ -1,0 +1,8 @@
+<launch>
+    <rosparam file="$(find ekf_gps_goal_controller)/config/params.yaml" command="load"/>
+
+    <node pkg="ekf_gps_goal_controller"
+          type="gps_controller.py"
+          name="gps_goal_controller"
+          output="screen"/>
+</launch>

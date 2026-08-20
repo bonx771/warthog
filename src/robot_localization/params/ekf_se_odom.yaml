@@ -1,0 +1,85 @@
+frequency: 50
+sensor_timeout: 0.2
+two_d_mode: true
+transform_time_offset: 0.0
+transform_timeout: 0.0         # tăng lên để ổn định hơn nếu thấy hiện tượng giật lag TF.
+reset_on_time_jump: true
+print_diagnostics: true
+debug: false
+publish_tf: true
+
+
+map_frame: map
+odom_frame: odom
+base_link_frame: base_link
+world_frame: odom
+
+# ===== WHEEL =====
+odom0: /warthog_velocity_controller/odom
+odom0_config: [false, false, false,
+                false, false, false,
+                true,  true,  false,
+                false, false, true,
+                false, false, false]
+odom0_queue_size: 20
+odom0_nodelay: true
+odom0_differential: false
+odom0_relative: false
+
+# ===== IMU =====
+# IMU nomag: chỉ dùng yaw và yaw rate để test heading local.
+imu0: /imu/data_covariance
+imu0_config: [false, false, false,
+              false, false, false,
+              false, false, false,
+              false, false, true,
+              false, false, false]
+imu0_nodelay: true
+imu0_differential: false
+imu0_relative: false
+imu0_queue_size: 20
+imu0_remove_gravitational_acceleration: true
+
+use_control: false
+
+# Ma trận Nhiễu quá trinh Q
+process_noise_covariance: [1e-3, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    1e-3, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    1e-3, 0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0.3,  0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0.3,  0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0.01, 0,     0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0.5,   0,     0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0.5,   0,    0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0.1,  0,    0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0,    0.3,  0,    0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0.3,  0,    0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0.3,  0,    0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0.3,  0,    0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0.3,  0,
+                            0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0.3]
+
+# Ma trận Hiệp phương sai ban đầu (P0)
+
+# Đây là ma trận thể hiện độ tin cậy về vị trí và trạng thái của robot tại thời điểm vừa nhấn nút Start
+# Nếu giá trị trong $P_0$ cực nhỏ (ví dụ $1e-9$): khẳng định chắc chắn 100% robot đang ở tọa độ này, hướng này". Nếu thực tế robot đang đứng lệch đi một chút, 
+# EKF sẽ mất rất nhiều thời gian để "chấp nhận" sự thật đó vì đã quá tin vào cái giả định ban đầu.
+# Nếu giá trị trong $P_0$ lớn (ví dụ $1.0$): chỉ đoán đại là robot ở đây thôi, 
+# cảm biến bảo sao thì tao nghe vậy". Lúc này, EKF sẽ hội tụ về giá trị của cảm biến (GPS, IMU) cực nhanh ngay khi vừa khởi động.
+
+
+initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    1e-9, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    1e-9, 0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    1.0,  0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    1.0,  0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    1e-9, 0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    1.0,  0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    1.0,  0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    1.0,  0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    1.0,   0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     1.0,   0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     1.0,   0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1.0,  0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1.0,  0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1.0]

@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Terminal 2, simulation K4. Start outdoor_waypoint_nav_sim.launch first.
+    For the faithful 300 m route, use the open K4 world documented below.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="theta_deg" default="15.0" />
+  <arg name="route_length_m" default="300.0" />
+  <arg name="first_side" default="right" />
+  <arg name="waypoint_file" default="/waypoint_files/points_scenario_4_sim.txt" />
+  <arg name="sample_duration_sec" default="5.0" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results/simulation" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/simulation" />
+  <arg name="trajectory_run_naming_mode" default="sequential" />
+
+  <!-- K4 uses clean simulated GPS for navigation. Raw /gps/fix remains the
+       independent reference stream used by the CSV logger and WP1 sampler. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_4_sim_clean_gps_to_navsat"
+        args="/gps/fix $(arg selected_fix_topic)"
+        output="screen" />
+
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+
+  <!-- K4 owns l/y/c/k/r, so do not include joy_launch_control_sim.launch. -->
+  <node ns="/outdoor_waypoint_nav"
+        pkg="outdoor_waypoint_nav"
+        type="keyboard_to_joy.py"
+        name="scenario_4_sim_keyboard_control"
+        output="screen">
+    <param name="output_topic"
+           value="/outdoor_waypoint_nav/scenario_4/keyboard_joy"
+           type="string" />
+    <param name="cmd_topic" value="" type="string" />
+    <param name="button_count" value="8" type="int" />
+    <param name="enable_motion_keys" value="false" type="bool" />
+    <rosparam param="enabled_button_keys">["l", "y", "c", "k", "r", "b"]</rosparam>
+  </node>
+
+  <node ns="/outdoor_waypoint_nav"
+        pkg="outdoor_waypoint_nav"
+        type="scenario_4_waypoint_manager.py"
+        name="scenario_4_sim_waypoint_manager"
+        output="screen">
+    <param name="gps_topic" value="/gps/fix" type="string" />
+    <param name="utm_frame" value="utm" type="string" />
+    <param name="base_frame" value="base_link" type="string" />
+    <param name="heading_fallback_frame" value="map" type="string" />
+    <param name="keyboard_joy_topic"
+           value="/outdoor_waypoint_nav/scenario_4/keyboard_joy"
+           type="string" />
+    <param name="theta_deg" value="$(arg theta_deg)" type="double" />
+    <param name="route_length_m" value="$(arg route_length_m)" type="double" />
+    <param name="first_side" value="$(arg first_side)" type="string" />
+    <param name="waypoint_file" value="$(arg waypoint_file)" type="string" />
+    <param name="sample_duration_sec" value="$(arg sample_duration_sec)" type="double" />
+    <param name="send_launch_file"
+           value="/launch/include/send_goals_scenario_4_sim.launch"
+           type="string" />
+    <rosparam param="allowed_theta_deg">[15.0, 30.0, 45.0]</rosparam>
+  </node>
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="include_joy_control" value="false" />
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="evaluation_defer_waypoint_load" value="true" />
+    <arg name="evaluation_start_on_waypoint_index_zero" value="false" />
+    <arg name="evaluation_start_topic"
+         value="/outdoor_waypoint_nav/scenario_4/run_started" />
+    <arg name="evaluation_allow_multiple_runs" value="false" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_run_naming_mode" value="$(arg trajectory_run_naming_mode)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_start_topic"
+         value="/outdoor_waypoint_nav/scenario_4/run_started" />
+    <arg name="trajectory_allow_multiple_runs" value="false" />
+    <arg name="trajectory_scenario_name"
+         value="scenario_4_trajectory_sim_theta_$(arg theta_deg)" />
+    <arg name="trajectory_scenario_metadata"
+         value="environment=simulation;theta_deg=$(arg theta_deg);route_length_m=$(arg route_length_m);first_side=$(arg first_side);waypoint_file=$(arg waypoint_file)" />
+  </include>
+</launch>

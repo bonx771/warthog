@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+  eval_outdoor.launch — Đánh giá EKF tầng 1 trên Warthog thật
+  ══════════════════════════════════════════════════════════════
+  Giả sử ekf_outdoor.launch (hoặc bringup) đã chạy sẵn.
+  File này chỉ khởi động square_eval.py để lái hình vuông và đo
+  loop closure error từ /outdoor_waypoint_nav/odometry/filtered.
+
+  Yêu cầu trước khi chạy:
+    Chạy stack localization outdoor trước (ví dụ outdoor_waypoint_nav.launch)
+    rồi mới roslaunch outdoor_waypoint_nav eval_outdoor.launch
+
+  Tham số:
+    side_length  : độ dài mỗi cạnh hình vuông (m)
+    linear_vel   : vận tốc thẳng (m/s)
+    angular_vel  : vận tốc góc khi quay (rad/s)
+    output_dir   : thư mục lưu kết quả YAML + CSV
+-->
+<launch>
+
+  <arg name="side_length"  default="3.0"/>
+  <arg name="linear_vel"   default="0.5"/>
+  <arg name="angular_vel"  default="0.25"/>
+  <arg name="output_dir"   default="$(find outdoor_waypoint_nav)/results"/>
+
+  <node name="square_eval" pkg="outdoor_waypoint_nav" type="square_eval.py"
+        output="screen">
+    <rosparam command="load" file="$(find outdoor_waypoint_nav)/params/outdoor_params.yaml"/>
+    <param name="side_length"  value="$(arg side_length)"/>
+    <param name="linear_vel"   value="$(arg linear_vel)"/>
+    <param name="angular_vel"  value="$(arg angular_vel)"/>
+    <param name="output_dir"   value="$(arg output_dir)"/>
+  </node>
+
+</launch>

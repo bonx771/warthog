@@ -1,0 +1,11 @@
+<launch>
+  <!-- Node đọc GPS thật -->
+  <!-- <node pkg="gps_pkg" type="gps_node.py" name="gps_node" output="screen" /> -->
+  <node pkg="gps_pkg" type="gps_UBX_node.py" name="gps_UBX_node" output="screen" />
+
+  <node pkg="gps_pkg"
+        type="gps_origin_distance_logger.py"
+        name="gps_origin_distance_logger"
+        output="screen" />
+</launch>
+ 

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="use_lidar" default="false" />
+
+  <param name="/outdoor_waypoint_nav/safety_enabled" value="false" type="bool" /> <!-- false: safety_node chỉ relay lệnh, không can thiệp stop/slowdown/align. -->
+  <param name="/outdoor_waypoint_nav/safety_input_cmd_topic" value="/cmd_vel_intermediate" type="string" /> <!-- Topic nhận lệnh vận tốc từ move_base. -->
+  <param name="/outdoor_waypoint_nav/safety_output_cmd_topic" value="/cmd_vel" type="string" /> <!-- Topic xuất lệnh vận tốc sau khi kiểm tra an toàn. -->
+  <param name="/outdoor_waypoint_nav/safety_scan_topic" value="/front/scan" type="string" /> <!-- Topic dữ liệu lidar dùng để phát hiện vật cản. -->
+  <param name="/outdoor_waypoint_nav/safety_slowdown_distance" value="0.8" type="double" /> <!-- Bắt đầu giảm vận tốc tiến khi vật cản gần hơn khoảng này (m). -->
+  <param name="/outdoor_waypoint_nav/safety_stop_distance" value="0.35" type="double" /> <!-- Chặn vận tốc tiến khi vật cản gần hơn khoảng này (m); vẫn giữ lệnh lái của move_base. -->
+  <param name="/outdoor_waypoint_nav/safety_sector_half_angle_deg" value="20.0" type="double" /> <!-- Nửa góc quét phía trước (độ), hiện tại kiểm tra vùng từ -20 đến +20 độ. -->
+  <param name="/outdoor_waypoint_nav/safety_command_timeout" value="0.5" type="double" /> <!-- Dừng robot nếu quá thời gian này không nhận được lệnh mới từ move_base (s). -->
+  <param name="/outdoor_waypoint_nav/safety_command_timeout_stop_enabled" value="false" type="bool" /> <!-- false: nếu không có input thì không tự publish stop ra /cmd_vel. -->
+  <param name="/outdoor_waypoint_nav/safety_scan_enabled" value="$(arg use_lidar)" type="bool" /> <!-- Bật kiểm tra vật cản bằng lidar; tắt khi chưa lắp lidar. -->
+  <param name="/outdoor_waypoint_nav/safety_require_fresh_scan" value="$(arg use_lidar)" type="bool" /> <!-- Khi dùng lidar, bắt buộc phải có scan mới; mất lidar thì giữ dừng. -->
+  <param name="/outdoor_waypoint_nav/safety_scan_timeout" value="0.5" type="double" /> <!-- Scan cũ hơn thời gian này thì coi như mất lidar (s). -->
+  <param name="/outdoor_waypoint_nav/safety_replan_enabled" value="false" type="bool" /> <!-- Yêu cầu waypoint controller gửi lại goal khi lidar thấy vật cản chặn lâu. -->
+  <param name="/outdoor_waypoint_nav/safety_replan_topic" value="/outdoor_waypoint_nav/replan_requested" type="string" /> <!-- Topic gửi yêu cầu replan cho gps_waypoint. -->
+  <param name="/outdoor_waypoint_nav/safety_replan_blocked_duration" value="1.0" type="double" /> <!-- Chặn tiến liên tục lâu hơn thời gian này thì yêu cầu replan (s). -->
+  <param name="/outdoor_waypoint_nav/safety_replan_publish_cooldown" value="2.0" type="double" /> <!-- Khoảng nghỉ tối thiểu giữa hai lần publish replan (s). -->
+  <param name="/outdoor_waypoint_nav/goal_slowdown_enabled" value="false" type="bool" /> <!-- Giảm tốc khi gần current_goal của move_base để không lao quá waypoint. -->
+  <param name="/outdoor_waypoint_nav/goal_slowdown_topic" value="/move_base/current_goal" type="string" /> <!-- Topic goal hiện tại của move_base. -->
+  <param name="/outdoor_waypoint_nav/goal_base_frame" value="base_link" type="string" /> <!-- Frame thân robot dùng để đo khoảng cách và hướng tới goal. -->
+  <param name="/outdoor_waypoint_nav/goal_slowdown_distance" value="3.0" type="double" /> <!-- Bắt đầu giới hạn tốc khi còn cách goal gần hơn khoảng này (m). -->
+  <param name="/outdoor_waypoint_nav/goal_slowdown_stop_distance" value="0.6" type="double" /> <!-- Khoảng cách sát goal dùng mức tốc thấp nhất (m). -->
+  <param name="/outdoor_waypoint_nav/goal_slowdown_min_forward_speed" value="0.20" type="double" /> <!-- Tốc tiến tối đa cho phép khi sát goal (m/s). -->
+  <param name="/outdoor_waypoint_nav/goal_slowdown_max_forward_speed" value="1.4" type="double" /> <!-- Tốc tiến tham chiếu khi ngoài vùng giảm tốc (m/s). -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_enabled" value="false" type="bool" /> <!-- Khi nhận waypoint mới, nếu lệch hướng nhiều thì quay tại chỗ trước khi chạy. -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_angle_threshold" value="0.35" type="double" /> <!-- Bắt đầu quay tại chỗ nếu lệch hướng tới waypoint lớn hơn góc này (rad). -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_release_angle" value="0.12" type="double" /> <!-- Nhả cho chạy khi sai số hướng nhỏ hơn góc này (rad). -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_min_goal_distance" value="1.20" type="double" /> <!-- Không căn hướng nếu goal quá gần robot (m). -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_kp" value="1.6" type="double" /> <!-- Hệ số P cho quay tại chỗ về hướng waypoint. -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_min_angular_speed" value="0.25" type="double" /> <!-- Tốc quay nhỏ nhất khi còn lệch hướng (rad/s). -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_max_angular_speed" value="0.90" type="double" /> <!-- Tốc quay lớn nhất khi căn hướng waypoint (rad/s). -->
+  <param name="/outdoor_waypoint_nav/waypoint_align_timeout" value="6.0" type="double" /> <!-- Thoát căn hướng nếu quá thời gian này; đặt 0 để tắt timeout. -->
+
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav" type="safety_node" name="safety_node" output="screen"/>
+
+</launch>

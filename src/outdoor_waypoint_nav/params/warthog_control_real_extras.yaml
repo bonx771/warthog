@@ -1,0 +1,7 @@
+# Override only the wheel-odometry covariance for the real robot.
+# Keep x and yaw reasonably trusted, but heavily de-trust lateral y/vy
+# because diff-drive odometry does not observe sideways motion well.
+
+warthog_velocity_controller:
+  pose_covariance_diagonal: [0.01, 10000.0, 1000000.0, 1000000.0, 1000000.0, 0.05]
+  twist_covariance_diagonal: [0.02, 10000.0, 1000000.0, 1000000.0, 1000000.0, 0.05]

@@ -1,0 +1,12 @@
+# Tham số CỐ ĐỊNH cho outdoor — không override từ launch
+# -------------------------------------------
+
+turn_direction: 1
+pause_after_side: 2.0   # tăng hơn sim để EKF ổn định sau mỗi cạnh
+pause_after_turn: 3
+
+mode: "outdoor"
+gt_topic: ""
+gt_model_name: ""
+cmd_vel_topic: "/warthog_velocity_controller/cmd_vel"
+ekf_odom_topic: "/outdoor_waypoint_nav/odometry/filtered"

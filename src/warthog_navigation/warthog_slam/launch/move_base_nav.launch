@@ -1,0 +1,98 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="use_lidar" default="false" />
+  <arg name="odom_topic" default="/outdoor_waypoint_nav/odometry/filtered_map" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <rosparam if="$(arg use_lidar)" file="$(find warthog_slam)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam if="$(arg use_lidar)" file="$(find warthog_slam)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam unless="$(arg use_lidar)" file="$(find warthog_slam)/params/costmap_common_params_nolidar.yaml" command="load" ns="global_costmap" />
+    <rosparam unless="$(arg use_lidar)" file="$(find warthog_slam)/params/costmap_common_params_nolidar.yaml" command="load" ns="local_costmap" />
+
+    <rosparam file="$(find warthog_slam)/params/base_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find warthog_slam)/params/move_base_params.yaml" command="load" />
+
+    <param name="controller_frequency" value="10.0" />
+    <param name="planner_frequency" value="6.0" />
+    <param name="controller_patience" value="10.0" />
+    <param name="planner_patience" value="5.0" />
+    <param name="oscillation_timeout" value="0.0" />
+    <param name="oscillation_distance" value="0.05" />
+    <param name="recovery_behavior_enabled" value="false" />
+    <param name="clearing_rotation_allowed" value="false" />
+
+    <rosparam param="recovery_behaviors">
+      - name: conservative_reset
+        type: clear_costmap_recovery/ClearCostmapRecovery
+      - name: aggressive_reset
+        type: clear_costmap_recovery/ClearCostmapRecovery
+    </rosparam>
+
+    <param name="conservative_reset/reset_distance" value="1.5" />
+    <!-- <param name="aggressive_reset/reset_distance" value="3.0" /> -->
+
+    <!-- Match the sim GPS waypoint controller tuning for real-world tests. -->
+    <param name="TrajectoryPlannerROS/yaw_goal_tolerance" value="3.14" />
+    <param name="TrajectoryPlannerROS/latch_xy_goal_tolerance" value="true" />
+    <param name="TrajectoryPlannerROS/min_vel_x" value="0.25" />
+    <param name="TrajectoryPlannerROS/max_vel_theta" value="0.65" />
+    <param name="TrajectoryPlannerROS/min_vel_theta" value="-0.65" />
+    <param name="TrajectoryPlannerROS/min_in_place_vel_theta" value="0.30" />
+    <param name="TrajectoryPlannerROS/acc_lim_theta" value="2.0" />
+    <param name="TrajectoryPlannerROS/sim_time" value="2.0" />
+    <param name="TrajectoryPlannerROS/vx_samples" value="8" />
+    <param name="TrajectoryPlannerROS/vtheta_samples" value="20" />
+    <param name="TrajectoryPlannerROS/controller_frequency" value="10.0" />
+    <param name="TrajectoryPlannerROS/pdist_scale" value="0.4" />
+    <param name="TrajectoryPlannerROS/gdist_scale" value="2.0" />
+    <param name="TrajectoryPlannerROS/occdist_scale" value="0.45" />
+    <param name="TrajectoryPlannerROS/oscillation_reset_dist" value="0.05" />
+    <param name="TrajectoryPlannerROS/heading_scoring" value="false" />
+    <param name="TrajectoryPlannerROS/heading_lookahead" value="0.5" />
+
+    <rosparam param="global_costmap">
+      global_frame: map
+      robot_base_frame: base_link
+      update_frequency: 5
+      publish_frequency: 5
+      width: 80
+      height: 80.0
+      resolution: 0.2
+      static_map: false
+      rolling_window: true
+      transform_tolerance: 1.0
+      footprint_padding: 0.02
+      track_unknown_space: false
+      inflater_layer:
+        inflation_radius: 0.3
+        cost_scaling_factor: 2
+    </rosparam>
+
+    <rosparam param="local_costmap">
+      global_frame: odom
+      robot_base_frame: base_link
+      update_frequency: 10.0
+      publish_frequency: 10.0
+      width: 10.0
+      height: 10.0
+      resolution: 0.1
+      static_map: false
+      rolling_window: true
+      transform_tolerance: 1.0
+      footprint_padding: 0.02
+      inflater_layer:
+        inflation_radius: 0.3
+        cost_scaling_factor: 2
+    </rosparam>
+
+    <param name="base_global_planner" value="navfn/NavfnROS" />
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/>
+
+    <remap from="odom" to="$(arg odom_topic)" />
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)" />
+    <remap if="$(arg use_lidar)" from="scan" to="/front/scan" />
+  </node>
+</launch>

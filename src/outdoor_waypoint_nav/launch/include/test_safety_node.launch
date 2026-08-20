@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<launch>
+
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_enabled" value="false" type="bool" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_distance" value="1.6" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_sector_half_angle_deg" value="45.0" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_turn_speed" value="0.55" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_turn_forward_speed" value="0.35" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_forward_speed" value="0.40" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_advance_turn_speed" value="0.30" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_stop_distance" value="0.45" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_min_cmd_linear_x" value="0.08" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_clear_distance" value="2.2" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_turn_angle_deg" value="35.0" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_odom_frame" value="odom" type="string" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_base_frame" value="base_link" type="string" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_replan_topic" value="/outdoor_waypoint_nav/replan_requested" type="string" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_replan_cooldown" value="1.0" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_preferred_turn_topic" value="/outdoor_waypoint_nav/preferred_avoidance_turn_direction" type="string" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_preferred_turn_timeout" value="1.0" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_clear_hold_time" value="0.6" type="double" />
+  <param name="/outdoor_waypoint_nav/obstacle_avoidance_planner_turn_passthrough_speed" value="0.08" type="double" />
+
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav" type="safety_node" name="test_safety_node" output="screen"/>
+
+</launch>

@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- RViz -->
+  <arg name="rviz" default="true"/>
+  <arg name="config" default="default" />
+
+  <!-- Gazebo -->
+  <arg name="use_sim_time" default="true" />
+  <arg name="gui" default="true" />
+  <arg name="headless" default="false" />
+  <arg name="world_name" default="$(find warthog_gazebo)/worlds/warthog.world" />
+
+  <!-- Launch Gazebo with the specified world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="debug" value="0" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="use_sim_time" value="$(arg use_sim_time)" />
+    <arg name="headless" value="$(arg headless)" />
+    <arg name="world_name" value="$(arg world_name)" />
+  </include>
+
+  <!-- Spawn Warthog -->
+  <arg name="spawn" value="$(find warthog_simulation)/launch/warthog_spawn.launch" />
+
+  <!-- Spawn AprilTag -->
+  <!-- <node name="spawn_apriltag" pkg="gazebo_ros" type="spawn_model" 
+        args="-file $(find warthog_simulation)/urdf/apriltag.urdf.xacro -urdf -x 2 -y 0 -z 1 -R 1.57 -P 1.57 -Y -1.57 -model apriltag"/> -->
+
+  <include file="$(arg spawn)"/>
+
+  <!-- Point clound to laser scan -->
+  <!-- <node pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" name="pointcloud_to_laserscan">
+    <remap from="cloud_in" to="/velodyne_points"/>
+    <remap from="scan" to="/front/scan"/>
+    <rosparam>
+        target_frame: velodyne # Leave disabled to output scan in pointcloud frame
+        transform_tolerance: 0.01
+        min_height: -0.45
+        # Concurrency level, affects number of pointclouds queued for processing and number of threads used
+        # 0 : Detect number of cores
+        # 1 : Single threaded
+        # 2->inf : Parallelism level
+        concurrency_level: 0
+    </rosparam>
+  </node> -->
+
+  <node pkg="rf2o_laser_odometry" type="rf2o_laser_odometry_node" name="laser_odometry" output="screen">
+    <param name="laser_scan_topic" value="/front/scan"/>        # topic where the lidar scans are being published
+    <param name="odom_topic" value="/front/odom_laser" />              # topic where tu publish the odometry estimations
+    <param name="publish_tf" value="true" />                   # wheter or not to publish the tf::transform (base->odom)
+    <param name="base_frame_id" value="base_link"/>            # frame_id (tf) of the mobile robot base. A tf transform from the laser_frame to the base_frame is mandatory
+    <param name="odom_frame_id" value="odom" />                # frame_id (tf) to publish the odometry estimations    
+    <param name="init_pose_from_topic" value="" /> # (Odom topic) Leave empty to start at point (0,0)
+    <param name="freq" value="10.0"/>                            # Execution frequency.
+    <param name="verbose" value="true" />                       # verbose
+  </node>
+
+  <!-- WORLD
+  <group if="$(eval config != 'rtabmap')">
+    <node pkg="tf" type="static_transform_publisher" name="world_broadcaster" args="0 0 0 0 0 0 /world /odom 100" 
+          if="$(eval config != 'gmapping')"/>
+  </group> -->
+
+  <!-- RViz -->
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="$(anon rviz)" respawn="false" 
+        output="screen" args="-d $(find warthog_simulation)/rviz/$(arg config).rviz" />
+</launch>

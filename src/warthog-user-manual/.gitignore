@@ -1,0 +1,6 @@
+warthog.pdf
+*.aux
+*.log
+*.toc
+*.out
+*.gz

@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="rviz" default="true"/>
+  <arg name="config" default="default" />
+  <param name="use_sim_time" value="false"/>
+
+  <include file="$(find gps_pkg)/launch/navsat_transform_gps.launch"></include>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_imu" 
+        args="0 0 0 0 0 0 base_link imu_link" />
+  
+  <node pkg="tf2_ros" type="static_transform_publisher" name="base_link_to_gps" 
+        args="-0.5 0.3 0 0 0 0 base_link gps_link" />
+
+  <!-- ===================== EKF LOCAL ===================== -->
+  <node pkg="robot_localization"
+        type="ekf_localization_node"
+        name="ekf_se_odom"
+        output="screen"
+        clear_params="true">
+    <remap from="odometry/filtered" to="odometry/filtered"/>
+    <rosparam command="load" file="$(find robot_localization)/params/ekf_se_odom.yaml" />
+  </node>
+
+  <!-- ===================== NAVSAT TRANSFORM ===================== -->
+  <node pkg="robot_localization"
+        type="navsat_transform_node"
+        name="navsat_transform"
+        output="screen"
+        clear_params="true">
+
+    <param name="wait_for_datum" value="false"/> <param name="broadcast_utm_transform" value="true"/>
+    <param name="publish_filtered_gps" value="true"/>
+    
+    <rosparam command="load" file="$(find robot_localization)/params/navsat_transform.yaml" />
+    <remap from="imu/data" to="/imu/data"/>
+    <remap from="gps/fix" to="/gps/fix"/>
+    <remap from="odometry/gps" to="/odometry/gps"/>
+    <remap from="odometry/filtered" to="/odometry/filtered"/>
+
+  </node>
+
+    <!-- ===================== EKF GLOBAL ===================== -->
+  <node pkg="robot_localization"
+        type="ekf_localization_node"
+        name="ekf_se_map"
+        output="screen"
+        clear_params="true">
+    <rosparam command="load" file="$(find robot_localization)/params/ekf_se_map.yaml" />
+    <remap from="odometry/filtered" to="odometry/filtered_map"/>
+  </node>
+
+  <!-- <node pkg="move_base" type="move_base" name="move_base" output="screen">
+
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+    <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/> -->
+
+    <!-- GLOBAL COSTMAP -->
+    <!-- <rosparam param="global_costmap">
+      global_frame: map
+      robot_base_frame: base_link
+      update_frequency: 1.0
+      publish_frequency: 0.5
+      rolling_window: true
+      width: 100.0
+      height: 100.0
+      resolution: 0.5
+      static_map: false
+      plugins:
+        - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+      inflation_layer:
+        inflation_radius: 0.5
+    </rosparam> -->
+
+
+    <!-- LOCAL COSTMAP -->
+    <!-- <rosparam param="local_costmap">
+      global_frame: map
+      robot_base_frame: base_link
+      rolling_window: true
+      width: 50.0
+      height: 50.0
+      resolution: 0.2
+      update_frequency: 2
+      publish_frequency: 1
+      static_map: false
+
+      plugins:
+        - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+      inflation_layer:
+        inflation_radius: 0.5
+    </rosparam>
+
+    <rosparam param="DWAPlannerROS">
+      max_vel_x: 0.5
+      min_vel_x: 0.0
+      max_vel_trans: 1.0
+      min_vel_trans: 0.05
+      max_vel_theta: 1.0
+      min_vel_theta: 0.0
+      acc_lim_x: 2.0
+      acc_lim_theta: 0.8
+      xy_goal_tolerance: 0.5
+      yaw_goal_tolerance: 3.14
+      sim_time: 2.0
+   </rosparam>
+   <rosparam param="move_base">
+      transform_tolerance: 0.5
+      controller_frequency: 10.0
+      planner_frequency: 1.0
+      oscillation_timeout: 10.0
+      oscillation_distance: 0.5
+   </rosparam>
+   <remap from="odom" to="/odometry/filtered"/>
+
+  </node> -->
+
+  <!-- ===================== GPS WAYPOINT SENDER ===================== -->
+  <!-- <node pkg="robot_localization"
+        type="send_waypoint"
+        name="send_waypoint"
+        output="screen"
+        launch-prefix="bash -c 'sleep 3; $0 $@'" /> -->
+
+  <include file="$(find warthog_slam)/launch/amcl.launch" />
+
+  <!-- ===================== RVIZ ===================== -->
+  <node if="$(arg rviz)"
+        pkg="rviz"
+        type="rviz"
+        name="$(anon rviz)"
+        output="screen"
+        args="-d $(find warthog_simulation)/rviz/$(arg config).rviz" />
+
+</launch>

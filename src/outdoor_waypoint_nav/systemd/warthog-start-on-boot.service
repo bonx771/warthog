@@ -1,0 +1,16 @@
+[Unit]
+Description=Warthog startup ROS bridge and mission receiver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cuong
+WorkingDirectory=/home/cuong/warthog
+ExecStart=/home/cuong/warthog/src/outdoor_waypoint_nav/scripts/start_on_boot.sh
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

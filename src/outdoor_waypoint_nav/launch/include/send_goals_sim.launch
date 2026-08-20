@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="coordinates_file" default="/waypoint_files/points_sim.txt" />
+
+  <!-- Chạy node đọc waypoint GPS, gửi goal cho move_base và theo dõi tiến trình. -->
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav" type="gps_waypoint" name="gps_waypoint" output="screen"/>
+
+  <!-- File chứa danh sách waypoint lat/long dùng trong mô phỏng. -->
+  <param name="/outdoor_waypoint_nav/coordinates_file" value="$(arg coordinates_file)" type="string" />
+  <!-- Frame dùng để gửi goal cho move_base; thường là map khi đã có TF utm -> map. -->
+  <param name="/outdoor_waypoint_nav/goal_frame" value="map" type="string" />
+
+  <!-- Frame dùng để vẽ marker waypoint trong RViz. -->
+  <param name="/outdoor_waypoint_nav/waypoint_marker_frame" value="map" type="string" />
+  <!-- Topic publish marker các waypoint đã/đang tới. -->
+  <param name="/outdoor_waypoint_nav/waypoint_marker_topic" value="/outdoor_waypoint_nav/collected_waypoints" type="string" />
+  <!-- Kích thước marker waypoint trong RViz, đơn vị mét. -->
+  <param name="/outdoor_waypoint_nav/waypoint_marker_scale" value="0.7" type="double" />
+  <!-- Robot vào gần waypoint hơn bán kính này thì marker chuyển xanh/coi như đã chạm vùng waypoint. -->
+  <param name="/outdoor_waypoint_nav/waypoint_marker_activation_radius" value="0.675" type="double" />
+
+  <!-- Giới hạn góc goal mới lệch so với hướng robot hiện tại, giúp robot không phải xoay gắt. -->
+  <param name="/outdoor_waypoint_nav/max_waypoint_goal_yaw_delta" value="0.35" type="double" />
+  <!-- Khi robot còn cách waypoint bán kính này, node gửi lại goal với hướng nhìn về đoạn waypoint kế tiếp. -->
+  <param name="/outdoor_waypoint_nav/waypoint_heading_preview_radius" value="0.7" type="double" />
+  <!-- Nếu robot vào bán kính này thì chuyển sang waypoint tiếp theo mà không chờ move_base báo SUCCEEDED. -->
+  <param name="/outdoor_waypoint_nav/waypoint_advance_radius" value="1.0" type="double" />
+
+  <!-- Bật/tắt recovery riêng khi move_base abort vì oscillation. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_enabled" value="false" type="bool" />
+  <!-- Số lần thử recovery tối đa cho mỗi waypoint. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_max_attempts" value="2" type="int" />
+  <!-- Khoảng lùi dự kiến cho recovery; hiện gps_waypoint.cpp đang khai báo nhưng chưa dùng. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_reverse_distance" value="0.0" type="double" />
+  <!-- Góc quay tránh vật cản khi recovery, đơn vị độ. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_turn_angle_deg" value="90.0" type="double" />
+  <!-- Quãng đường chạy tiến sau khi quay recovery, đơn vị mét. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_forward_distance" value="1.5" type="double" />
+  <!-- Tốc độ chạy thẳng khi recovery, đơn vị m/s. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_linear_speed" value="0.50" type="double" />
+  <!-- Tốc độ quay khi recovery, đơn vị rad/s. -->
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_angular_speed" value="0.55" type="double" />
+
+  <!-- Cho phép safety_node yêu cầu gửi lại goal để move_base lập kế hoạch lại. -->
+  <param name="/outdoor_waypoint_nav/safety_replan_enabled" value="true" type="bool" />
+  <!-- Topic nhận tín hiệu Bool yêu cầu replan từ safety/avoidance node. -->
+  <param name="/outdoor_waypoint_nav/safety_replan_topic" value="/outdoor_waypoint_nav/replan_requested" type="string" />
+  <!-- Thời gian nghỉ tối thiểu giữa 2 lần replan do safety, đơn vị giây; 0 là không nghỉ. -->
+  <param name="/outdoor_waypoint_nav/safety_replan_cooldown" value="0.0" type="double" />
+  <!-- Tự gửi lại goal hiện tại theo chu kỳ để move_base cập nhật đường đi từ vị trí mới. -->
+  <param name="/outdoor_waypoint_nav/auto_replan_current_goal_enabled" value="true" type="bool" />
+  <!-- Chu kỳ tự replan goal hiện tại, đơn vị giây. -->
+  <param name="/outdoor_waypoint_nav/auto_replan_current_goal_interval" value="0.5" type="double" />
+
+  <!-- Topic publish hướng né ưu tiên cho obstacle avoidance: -1, 0, hoặc 1. -->
+  <param name="/outdoor_waypoint_nav/preferred_avoidance_turn_topic" value="/outdoor_waypoint_nav/preferred_avoidance_turn_direction" type="string" />
+  <!-- Nếu sai lệch hướng tới waypoint nhỏ hơn ngưỡng này thì không ép hướng né, đơn vị độ. -->
+  <param name="/outdoor_waypoint_nav/preferred_avoidance_turn_deadband_deg" value="8.0" type="double" />
+  <!-- Đổi dấu hướng né ưu tiên; 1 giữ chiều mặc định, -1 đảo chiều. -->
+  <param name="/outdoor_waypoint_nav/preferred_avoidance_turn_sign" value="1.0" type="double" />
+
+  <param name="/outdoor_waypoint_nav/return_heading_pid_enabled" value="true" type="bool" /> <!-- Bật PID xoay về đúng góc ban đầu sau khi quay lại waypoint 1. -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_kp" value="1.4" type="double" /> <!-- Hệ số P: tăng thì xoay bám góc mạnh hơn. -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_ki" value="0.02" type="double" /> <!-- Hệ số I nhỏ để bù sai số tĩnh, tránh để lớn vì dễ quá đà. -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_kd" value="0.08" type="double" /> <!-- Hệ số D giúp hãm khi gần đúng góc. -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_tolerance_deg" value="5.0" type="double" /> <!-- Sai số góc chấp nhận khi kết thúc PID (độ). -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_max_angular_speed" value="0.8" type="double" /> <!-- Tốc độ quay tối đa khi PID căn góc (rad/s). -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_min_angular_speed" value="0.12" type="double" /> <!-- Tốc độ quay tối thiểu để robot không bị ì khi sai số còn lớn (rad/s). -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_integral_limit" value="1.0" type="double" /> <!-- Giới hạn tích phân I để tránh tích lũy quá nhiều. -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_settle_time" value="0.4" type="double" /> <!-- Thời gian phải giữ trong ngưỡng sai số trước khi coi là xong (s). -->
+  <param name="/outdoor_waypoint_nav/return_heading_pid_timeout" value="12.0" type="double" /> <!-- Timeout căn góc, quá thời gian này sẽ dừng và kết thúc node (s). -->
+
+</launch>

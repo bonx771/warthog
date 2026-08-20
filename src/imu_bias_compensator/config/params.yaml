@@ -1,0 +1,36 @@
+# imu_bias_compensator/config/params.yaml
+# Tune these values for your specific IMU and environment.
+
+# ── Topic names ───────────────────────────────────────────────────────────────
+imu_topic:  "/imu/data_raw"
+odom_topic: "/warthog_velocity_controller/odom"
+
+# Set false to disable odometry cross-check (detect static by IMU only)
+use_odom: true
+
+# ── ZUPT detection thresholds ────────────────────────────────────────────────
+# Increase accel_var_thresh if robot vibrates slightly while stopped.
+# Increase gyro_var_thresh  if IMU noise floor is high.
+accel_var_thresh: 0.02    # (m/s²)²  – variance of accelerometer window
+gyro_var_thresh:  0.001   # (rad/s)² – variance of gyroscope window
+
+# Linear+angular speed from odometry below which robot is considered static
+odom_vel_thresh:  0.02    # m/s
+
+# Sliding window size (samples)
+# At 100 Hz → 50 samples = 0.5 s look-back
+# At  50 Hz → 50 samples = 1.0 s look-back
+window_size: 50
+
+# Number of consecutive static samples before bias update starts.
+# Avoids updating during transient stop (robot still settling).
+static_confirm: 20
+
+# ── Bias update ───────────────────────────────────────────────────────────────
+# EMA weight: 0.001 = very slow, 0.01 = balanced, 0.1 = fast
+alpha: 0.01
+
+# ── Zero-out behaviour ────────────────────────────────────────────────────────
+# When true: sets angular_velocity = [0,0,0] while static (hard zero).
+# This prevents Madgwick / EKF from integrating residual noise.
+zero_gyro_when_static: true

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Terminal 2, simulation K1. Start outdoor_waypoint_nav_sim.launch first. -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="waypoint_file" default="/waypoint_files/points_sim.txt" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results/simulation" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/simulation" />
+  <arg name="trajectory_run_naming_mode" default="sequential" />
+
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+
+  <!-- The only publisher to the GNSS input used by navsat_transform in T1. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_1_sim_clean_gps_to_navsat"
+        args="/gps/fix $(arg selected_fix_topic)"
+        output="screen" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="joy_control_launch"
+         value="$(find outdoor_waypoint_nav)/launch/simulation/joy_launch_control_sim_no_gps_relay.launch" />
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_run_naming_mode" value="$(arg trajectory_run_naming_mode)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_scenario_name" value="scenario_1_gnss_normal_sim" />
+    <arg name="trajectory_scenario_metadata" value="environment=simulation;selected_gnss=raw_clean" />
+  </include>
+</launch>

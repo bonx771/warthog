@@ -1,0 +1,79 @@
+{
+  "anchor_wp1": {
+    "bearing_true_deg": 90.1353829113253,
+    "easting": 492818.43918744364,
+    "epsg": 32632,
+    "gps_sample_count": 101,
+    "heading_sample_count": 101,
+    "heading_std_deg": 0.05879259620831182,
+    "latitude": 49.90000000000626,
+    "longitude": 8.900000006348387,
+    "northing": 5527517.135815347,
+    "yaw_utm_rad": -0.002362877553562023
+  },
+  "corner_heading_changes_deg": [
+    15.0,
+    30.0,
+    30.0
+  ],
+  "first_side": "right",
+  "route_file": "/waypoint_files/points_scenario_4_sim.txt",
+  "scenario": "scenario_4_trajectory_shape",
+  "segment_lengths_m": [
+    60.00000000000366,
+    59.99999999999484,
+    120.00000000013075,
+    59.99999999999484
+  ],
+  "theta_deg": 15.0,
+  "total_route_length_m": 300.0,
+  "unit_length_m": 60.0,
+  "utm_epsg": 32632,
+  "waypoints": [
+    {
+      "easting": 492818.43918744364,
+      "forward_m": 0.0,
+      "index": 1,
+      "latitude": 49.90000000000626,
+      "longitude": 8.900000006348387,
+      "northing": 5527517.135815347,
+      "right_m": 0.0
+    },
+    {
+      "easting": 492878.439019948,
+      "forward_m": 60.0,
+      "index": 2,
+      "latitude": 49.899999442322006,
+      "longitude": 8.900835478225867,
+      "northing": 5527516.994042825,
+      "right_m": 0.0
+    },
+    {
+      "easting": 492936.3577143084,
+      "forward_m": 117.9555495773441,
+      "index": 3,
+      "latitude": 49.89985922572389,
+      "longitude": 8.901642255082649,
+      "northing": 5527501.32800173,
+      "right_m": 15.529142706151244
+    },
+    {
+      "easting": 493052.34187674354,
+      "forward_m": 233.8666487320323,
+      "index": 4,
+      "latitude": 49.90013746448154,
+      "longitude": 8.90325672141273,
+      "northing": 5527532.112316961,
+      "right_m": -15.529142706151244
+    },
+    {
+      "easting": 493110.26057110395,
+      "forward_m": 291.8221983093764,
+      "index": 5,
+      "latitude": 49.899997231039116,
+      "longitude": 8.904063493578208,
+      "northing": 5527516.446275867,
+      "right_m": 0.0
+    }
+  ]
+}

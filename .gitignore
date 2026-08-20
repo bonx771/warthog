@@ -1,0 +1,58 @@
+# ===== ROS / Catkin workspace =====
+
+build/
+devel/
+install/
+logs/
+
+# ===== CMake =====
+
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# ===== Catkin tools =====
+
+.catkin_tools/
+
+# ===== Python =====
+
+**pycache**/
+*.pyc
+*.pyo
+*.pyd
+
+# ===== Logs & temp =====
+
+*.log
+*.tmp
+*.swp
+*.bak
+
+# ===== VSCode / IDE =====
+
+.vscode/
+.idea/
+
+# ===== System files =====
+
+.DS_Store
+Thumbs.db
+
+# ===== ROS specific =====
+
+*.bag
+*.db
+
+# ===== Compiled files =====
+
+*.o
+*.so
+*.a
+*.out
+
+# ===== Environment =====
+
+.env
+venv/

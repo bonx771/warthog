@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- The experiment scenarios deliberately reuse the outdoor direct-pursuit
+       controller. In Gazebo its /cmd_vel output still passes through the
+       simulation twist mux, so path-following semantics match the real runs. -->
+  <arg name="coordinates_file" default="/waypoint_files/points_sim.txt" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch">
+    <arg name="coordinates_file" value="$(arg coordinates_file)" />
+  </include>
+</launch>

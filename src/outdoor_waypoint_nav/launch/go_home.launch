@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="outdoor_waypoint_nav" type="go_home.py" name="go_home" output="screen" />
+
+  <param name="/outdoor_waypoint_nav/trajectory_file" value="/waypoint_files/trajectory.csv" type="string" />
+  <param name="/outdoor_waypoint_nav/goal_frame" value="map" type="string" />
+  <param name="/outdoor_waypoint_nav/move_base_action" value="/move_base" type="string" />
+  <param name="/outdoor_waypoint_nav/go_home_goal_timeout" value="120.0" type="double" />
+  <param name="/outdoor_waypoint_nav/go_home_retry_on_failure" value="true" type="bool" />
+  <param name="/outdoor_waypoint_nav/go_home_yaw_alignment_enabled" value="true" type="bool" />
+  <param name="/outdoor_waypoint_nav/go_home_yaw_alignment_tolerance" value="0.05" type="double" />
+  <param name="/outdoor_waypoint_nav/go_home_yaw_alignment_max_angular_speed" value="0.5" type="double" />
+  <param name="/outdoor_waypoint_nav/go_home_yaw_alignment_p" value="1.2" type="double" />
+  <param name="/outdoor_waypoint_nav/go_home_yaw_alignment_max_duration" value="15.0" type="double" />
+  <param name="/outdoor_waypoint_nav/go_home_yaw_alignment_rate" value="10.0" type="double" />
+</launch>

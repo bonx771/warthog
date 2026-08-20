@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Scenario 2 model:
+      n_k = alpha*n_(k-1) + (1-alpha)*w_k, w_k ~ N(0, innovation_sigma_m^2)
+    With alpha=0.9, innovation sigmas 3/6/9 m give stationary output sigmas
+    0.69/1.38/2.06 m on each horizontal axis, respectively.
+  -->
+  <arg name="input_topic" default="/gps/fix" />
+  <arg name="output_topic" default="/gps/fix_noisy" />
+  <arg name="distance_odom_topic" default="/outdoor_waypoint_nav/odometry/filtered_odom" />
+  <arg name="activation_mode" default="distance" />
+  <arg name="reached_waypoint_topic" default="/outdoor_waypoint_nav/waypoint_reached_index" />
+  <arg name="noise_start_after_waypoint_index" default="2" />
+  <arg name="noise_stop_at_waypoint_index" default="4" />
+  <arg name="alpha" default="0.9" />
+  <arg name="innovation_sigma_m" default="3.0" />
+  <arg name="start_after_time_sec" default="0.0" />
+  <arg name="start_after_distance_m" default="0.0" />
+  <arg name="end_after_distance_m" default="-1.0" />
+  <arg name="fade_out_start_distance_m" default="-1.0" />
+
+  <node pkg="outdoor_waypoint_nav"
+        type="gnss_correlated_noise.py"
+        name="gnss_correlated_noise"
+        output="screen">
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="output_topic" value="$(arg output_topic)" />
+    <param name="distance_odom_topic" value="$(arg distance_odom_topic)" />
+    <param name="activation_mode" value="$(arg activation_mode)" />
+    <param name="reached_waypoint_topic" value="$(arg reached_waypoint_topic)" />
+    <param name="noise_start_after_waypoint_index" value="$(arg noise_start_after_waypoint_index)" type="int" />
+    <param name="noise_stop_at_waypoint_index" value="$(arg noise_stop_at_waypoint_index)" type="int" />
+    <param name="alpha" value="$(arg alpha)" type="double" />
+    <param name="innovation_sigma_m" value="$(arg innovation_sigma_m)" type="double" />
+    <param name="start_after_time_sec" value="$(arg start_after_time_sec)" type="double" />
+    <param name="start_after_distance_m" value="$(arg start_after_distance_m)" type="double" />
+    <param name="end_after_distance_m" value="$(arg end_after_distance_m)" type="double" />
+    <param name="fade_out_start_distance_m" value="$(arg fade_out_start_distance_m)" type="double" />
+    <param name="offset_enu_topic" value="/outdoor_waypoint_nav/gnss_noise/offset_enu" />
+    <param name="active_topic" value="/outdoor_waypoint_nav/gnss_noise/active" />
+  </node>
+</launch>

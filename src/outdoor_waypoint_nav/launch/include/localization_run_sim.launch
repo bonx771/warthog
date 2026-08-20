@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- The scenario launch in Terminal 2 owns this selected stream.  Keeping
+       the selection outside the EKF stack lets K1 to K4 replace the GNSS input
+       without spawning a second navsat_transform or EKF. -->
+  <arg name="gps_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+
+  <group ns="/outdoor_waypoint_nav">
+    <rosparam command="load" file="$(find outdoor_waypoint_nav)/params/ekf_params_sim.yaml" />
+    <rosparam command="load" file="$(find outdoor_waypoint_nav)/params/navsat_params_sim.yaml" />
+
+    <!-- Local odometry EKF: wheel encoder odometry + IMU. -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se_odom" clear_params="true" output="screen" />
+
+    <!-- Global map EKF: wheel encoder odometry + GPS odometry + IMU. -->
+    <node pkg="robot_localization" type="ekf_localization_node" name="ekf_se_map" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="odometry/filtered_map" />
+    </node>
+
+    <!-- Give simulated GPS a realistic covariance before it is fused globally. -->
+    <node pkg="outdoor_waypoint_nav" type="gps_covariance_relay.py" name="gps_covariance_relay" output="screen">
+      <param name="input_topic" value="$(arg gps_fix_topic)" />
+      <param name="output_topic" value="/outdoor_waypoint_nav/gps/fix_with_covariance" />
+      <rosparam param="position_diag">[1.0, 1.0, 4.0]</rosparam>
+      <!-- Preserve noise covariance injected by Scenario 2, then add the
+           nominal Gazebo covariance used by the simulation baseline. -->
+      <param name="add_input_covariance" value="true" type="bool" />
+    </node>
+
+    <!-- Match the outdoor stack: navsat_transform works in the global map frame. -->
+    <node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform" clear_params="true" output="screen">
+      <remap from="odometry/filtered" to="odometry/filtered_map"/>
+      <remap from="gps/fix" to="/outdoor_waypoint_nav/gps/fix_with_covariance"/>
+      <remap from="imu/data" to="/imu/data"/>
+    </node>
+  </group>
+
+</launch>

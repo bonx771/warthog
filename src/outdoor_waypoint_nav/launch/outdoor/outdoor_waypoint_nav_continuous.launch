@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<launch>
+
+    <arg name="launch_rviz" default="true" />
+    <arg name="rviz_config" default="$(find outdoor_waypoint_nav)/rviz_config/real.rviz" />
+
+    <!-- Run warthog_bringup -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/warthog_bringup.launch" />
+
+    <!-- launch lms1xx lidar -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/laser.launch" />
+
+    <!-- launch um6 imu -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/imu.launch" />
+
+    <!-- launch gps -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/gps.launch" />
+
+    <!-- Launch robot_localization and navsat -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/localization_run.launch"/>
+
+    <!-- Run gmapping to create map -->
+    <include file="$(find warthog_slam)/launch/gmapping.launch" />
+
+    <!-- Launch hector_slam for laser odometry and mapping -->
+    <!-- include file="$(find hector_mapping_nav)/launch/scanmatch_nav.launch" /-->
+
+    <!-- Run warthog_navigation to enable move_base -->
+    <include file="$(find warthog_slam)/launch/move_base_nav_continuous.launch" />
+
+    <!-- safety_node bypassed: move_base controllers now publish directly to /cmd_vel. -->
+    <!-- <include file="$(find outdoor_waypoint_nav)/launch/include/safety_node.launch" /> -->
+
+    <!-- Run rviz using the outdoor-specific configuration -->
+    <node if="$(arg launch_rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(arg rviz_config)" />
+
+</launch>

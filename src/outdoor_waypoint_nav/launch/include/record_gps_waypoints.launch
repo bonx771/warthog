@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav" type="record_gps_waypoints.py" name="record_gps_waypoints" output="screen" />
+
+  <param name="/outdoor_waypoint_nav/gps_topic" value="/gps/fix" type="string" />
+  <param name="/outdoor_waypoint_nav/odom_topic" value="/outdoor_waypoint_nav/odometry/filtered_map" type="string" />
+  <param name="/outdoor_waypoint_nav/record_file" value="/waypoint_files/record.txt" type="string" />
+  <param name="/outdoor_waypoint_nav/trajectory_file" value="/waypoint_files/trajectory.csv" type="string" />
+  <param name="/outdoor_waypoint_nav/record_distance_threshold" value="1.0" type="double" />
+  <param name="/outdoor_waypoint_nav/trajectory_record_interval" value="0.1" type="double" />
+
+</launch>

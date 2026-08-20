@@ -1,0 +1,15 @@
+serial_port: "/dev/ttyUSB0"
+baud_rate: 115200
+serial_timeout_sec: 0.05
+read_chunk_size: 256
+
+frame_id: "imu_link"
+state_topic: "/imu/data_new"
+yaw_sign: -1.0
+
+orientation_covariance_diagonal: [0.2, 0.2, 0.1]
+angular_velocity_covariance_diagonal: [0.05, 0.05, 0.0002]
+linear_acceleration_covariance_diagonal: [0.1, 0.1, 0.1]
+
+startup_commands: []
+startup_command_delay_sec: 0.05

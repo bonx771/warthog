@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Terminal 2 for Scenario 1. Start outdoor_waypoint_nav.launch first in
+    Terminal 1; this relay supplies its navsat_transform with clean GNSS.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/experiment_runs" />
+
+  <!-- Reset the route explicitly in case a preceding Scenario-4 run left its
+       generated route on the global parameter server. -->
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_1_clean_gps_to_navsat"
+        args="/gps/fix $(arg selected_fix_topic)"
+        output="screen" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_scenario_name" value="scenario_1_gnss_normal" />
+    <arg name="trajectory_scenario_metadata" value="selected_gnss=raw_clean" />
+  </include>
+</launch>

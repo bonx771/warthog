@@ -1,0 +1,19 @@
+warthog_velocity_controller:
+  # EKF publishes the authoritative odom -> base_link transform in simulation.
+  enable_odom_tf: false
+
+  # Simulation-only limits. These override control.yaml after it is loaded.
+  # Keep them slightly above the move_base limits so the controller does not
+  # clip the planned translational and rotational velocities.
+  linear:
+    x:
+      has_velocity_limits: true
+      max_velocity: 4.2
+      has_acceleration_limits: true
+      max_acceleration: 4.0
+  angular:
+    z:
+      has_velocity_limits: true
+      max_velocity: 1.2
+      has_acceleration_limits: true
+      max_acceleration: 2.5

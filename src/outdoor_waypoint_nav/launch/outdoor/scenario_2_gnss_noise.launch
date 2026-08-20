@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Terminal 2 for Scenario 2. Terminal 1 must already be running
+    outdoor_waypoint_nav.launch. This file intentionally does not include the
+    navigation stack, so EKF/navsat/move_base are never duplicated.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="alpha" default="0.9" />
+  <arg name="innovation_sigma_m" default="3.0" />
+
+  <!-- GPS stays clean through arrival at WP2, is noisy on WP2->WP4, and is
+       clean again immediately after arrival at WP4. -->
+  <arg name="activation_mode" default="waypoint_interval" />
+  <arg name="noise_start_after_waypoint_index" default="2" />
+  <arg name="noise_stop_at_waypoint_index" default="4" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/experiment_runs" />
+
+  <!-- Reset the route explicitly in case a preceding Scenario-4 run left its
+       generated route on the global parameter server. -->
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/gnss_correlated_noise.launch">
+    <arg name="input_topic" value="/gps/fix" />
+    <arg name="output_topic" value="/gps/fix_noisy" />
+    <arg name="alpha" value="$(arg alpha)" />
+    <arg name="innovation_sigma_m" value="$(arg innovation_sigma_m)" />
+    <arg name="activation_mode" value="$(arg activation_mode)" />
+    <arg name="noise_start_after_waypoint_index" value="$(arg noise_start_after_waypoint_index)" />
+    <arg name="noise_stop_at_waypoint_index" value="$(arg noise_stop_at_waypoint_index)" />
+  </include>
+
+  <!-- Keep /gps/fix_noisy available for logging, then make it the only GNSS
+       source seen by navsat_transform in Terminal 1. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_2_noisy_gps_to_navsat"
+        args="/gps/fix_noisy $(arg selected_fix_topic)"
+        output="screen" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_scenario_name" value="scenario_2_gnss_noise" />
+    <arg name="trajectory_scenario_metadata" value="alpha=$(arg alpha);innovation_sigma_m=$(arg innovation_sigma_m);activation_mode=$(arg activation_mode);noise_start_after_wp=$(arg noise_start_after_waypoint_index);noise_stop_at_wp=$(arg noise_stop_at_waypoint_index)" />
+  </include>
+</launch>

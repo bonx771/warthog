@@ -1,0 +1,899 @@
+% Software License Agreement
+%
+% Author    Chris Bogdon <cbogdon@clearpathrobotics.com>
+% Copyright (c) 2015, Clearpath Robotics, Inc., All rights reserved.
+%
+% Redistribution and use in source and binary forms, with or without modification, is
+% not permitted without the express permission of Clearpath Robotics.
+
+
+\documentclass[]{clearpath-latex/clearpath-manual}
+\graphicspath{{gen/}}
+\usepackage{multirow}
+\usepackage{gensymb}
+\usepackage{dcolumn}
+\usepackage{colortbl}
+\usepackage{array}
+\usepackage{hyperref}
+\usepackage{fancyhdr}
+\usepackage{pdfpages}
+\pagestyle{fancyplain}
+\lfoot{Rev. 1.3.0}
+\rfoot{Warthog UGV}
+\lhead{}
+\chead{}
+\rhead{}
+\renewcommand{\headrulewidth}{0pt}
+
+
+\begin{document}
+
+\manualcover{cover-page.pdf}
+\tableofcontents
+
+\section{Introduction}
+Clearpath Robotics Warthog is a rugged, all-terrain unmanned ground vehicle capable of travelling on land and in water.  Warthog fully supports Robot Operating System (ROS), and can be equipped with a variety of payloads. Payloads such as sensors and manipulators to accommodate a wide range of robotics applications in mining, agriculture, and environmental monitoring. This guide contains information about the setup, safe operation, and maintenance of your Warthog.  Please read the entire manual and safety warnings prior to operating the Warthog.
+
+\subsection{What's Included}
+
+Included with each Warthog are the following:
+
+\begin{itemize}[nolistsep]
+  \item 1x Warthog UGV
+  \begin{itemize}
+    \item{Onboard computer}
+    \item{User Panel with power, Ethernet, Serial(RS232) and USB connectivity}
+    \item{48V Lead Acid Battery Pack or 48V Lithium Battery Pack}
+    \item{Battery Charger}
+  \end{itemize}
+  \item 1x Futaba Remote Control (R/C)
+  \item 1x Warthog User Manual
+  \item 1x Wireless Stop Remote
+\end{itemize}
+
+
+
+\pagebreak[4]
+\subsection{Hardware Overview}
+
+Please see \autoref{Warthog_overview} for a view of some of Warthog's key external-facing features.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=1\linewidth]{graphics/Warthog_Drawing_Labeled.png}
+  \caption{Warthog Hardware Overview}
+  \label{Warthog_overview}
+\end{figure}
+
+\pagebreak[4]
+\subsubsection{Battery Charger}
+Please see Appendix for information about the provided charger.
+
+\subsubsection{Bilge Pumps}\label{bilgepumps}
+The Warthog has two bilge pumps, with one situated in each of the drive units underneath the motor.
+
+The bilge pumps are used to remove water from the main chassis and drive units during operation in water. At initial startup, an audible sound can be heard from the bilge pumps being initiated. These pumps are an automatic pumping system that check for water levels inside the drive units. The pumps automatically come on every two minutes and check for water levels. If the water level inside the drive unit exceeds a predetermined level, the pumps will remain on, otherwise they will shut off. During prolonged use in water, some water may appear in the drive unit. This is normal and acceptable.
+
+%% Picture of bilge pumps
+
+This outlet leads from the pump to the exterior of the Warthog. It is used to remove excess water from the chassis and drive units. No obstructions should be placed in front of or around this area. Obstruction of water flow may result in damage to the internal electrical components and loss of function in the Warthog.
+
+\subsubsection{User Panel}\label{userarea}
+
+The User Panel provides access to the user power panel, as well as USB, serial, and ethernet ports.  The power panel can be used to power your payloads. The USB 3.0 and ethernet  ports are connected directly to the onboard PC. To connect a device to the onboard network, it's suggested to give it a static IP in the \lstinline{192.168.131.x} subnet, avoiding IPs in use by the following pre-existing devices:
+
+\bgroup
+\def\arraystretch{1.2}%
+\begin{table}[h]
+  \centering
+  \begin{tabular}{>{\columncolor{lightgrey}}>{\raggedright}m{.3\textwidth} p{.65\textwidth}} \hline
+
+  192.168.131.1 & Onboard PC (all ports, br0 network interface). \\ \hline
+
+  192.168.131.2 & Ethernet-connected MCU. \\ \hline
+
+  192.168.131.20 & Front-facing LIDAR (optional). \\ \hline
+
+  192.168.131.21 & Rear-facing LIDAR (optional). \\ \hline
+
+  \end{tabular}
+\newline
+\caption{Warthog Onboard Network Devices}
+\label{netdevs}
+\end{table}
+\egroup
+
+Typically addresses numbered \lstinline{192.168.131.100} and above will not collide with any of Warthog's payloads.
+
+For more information on electrical integration, please see \autoref{electrical} on page \pageref{electrical}.
+
+
+\subsubsection{Payload Integration Area}
+
+All payloads should be mounted to the central chassis when traversing through water to prevent rolling. The primary payload of the unit should be placed on the central chassis. If necessary loading can be placed on the drive units however payloads should not exceed 50 lbs on each drive unit.
+
+For more information and guidance on mounting payload structures on top of Warthog, please refer to \autoref{mechanical} on page \pageref{mechanical}.
+
+
+\pagebreak[4]
+\subsection{Technical Specifications}
+
+Key specifications of Warthog are shown in \autoref{systemspecs}.
+
+\bgroup
+\def\arraystretch{1.2}%
+\begin{table}[h]
+  \centering
+  \begin{tabular}{>{\columncolor{lightgrey}}>{\raggedright}m{.30\textwidth} p{.70\textwidth}} \hline
+
+  External Dimensions (L x W x H) & 1.52 x 1.38 x 0.83 m (4.9 x 4.5 x 2.72 ft ) \\ \hline
+  Base Weight & 280 kg (551 lbs) \\ \hline
+  Ground Clearance & 254 mm (10 in) \\ \hline
+  Max Payload  &  272 kg (600 lbs)   \\ \hline
+  Max Incline & 35-45° \\ \hline
+  Max Speed  &  18 km/h (11 mph) \\ \hline
+  Suspension & Geometric Passive Articulation \\ \hline
+  Drive Configuration &  4x4 Skid Steer \\ \hline
+  Operating Environment  &  Outdoor \\ \hline
+  Traction & 24" Argo tire (24" Turf tire or 12" wide Quad Track System optional) \\ \hline
+  Battery Chemistry & AGM sealed lead acid (lithium optional) \\ \hline
+  Capacity &  105 Ah at 48 V, expandable to 200 Ah with lithium option \\ \hline
+  Nominal Run Time & Lead acid: 2.5 hrs, Lithium: 6 hrs \\ \hline
+  Charge Time &  4 Hours approx \\ \hline
+  User Power & 12 V, 24 V and 48 V Fused at 10A \\ \hline
+  Control Modes & Remote control, computer controlled velocity commands, indoor/outdoor autonomy packages \\ \hline
+  Feedback & Battery voltage, motor currents, wheel odometry, control system status, temperature, safety status \\ \hline
+  Communication &  Ethernet, USB, Remote Control, Wi-Fi \\ \hline
+  Drivers and APIs  &  Packaged with ROS Noetic (includes RViz, Gazebo support), Matlab API available \\ \hline
+
+  \end{tabular}
+\newline
+\caption{Warthog System Specifications}
+\label{systemspecs}
+\end{table}
+\egroup
+
+
+
+
+\section{Getting Started}
+
+The first step is to read this manual and safety warnings.  The next step is to power up your Warthog and have some fun driving it around!
+
+Twist the red power button on the back of Warthog. Once the body lights are flashing red, twist (to reset) all four stop buttons (if necessary), and press go on the Wireless Stop Remote (next section). In a moment, Warthog should go to solid red lights in back, and solid white in front.
+
+\subsection{Wireless Stop Remote}
+
+Included with the Warthog is a wireless stop remote. A picture of it is shown in
+\autoref{wireless-stop} below, and it's capable of engaging a safety stop remotely.  The system is designed to enter a stopped state when the remote is not communicating or loses communication with the base. The wireless e-stop remote operates as follows:
+
+\begin{enumerate}
+  \item Pull the red stop button outwards to disengage it from an e-stop condition.
+  \item Press and hold the green start button on the right side of the unit until the battery LED indicator above the buttons turns green. If the battery light is red, this means the e-stop button is still engaged.
+  \item Press the button labeled “RELEASE” within three seconds followed by the start button again.
+  \item The battery LED should be blinking green quickly, this indicates the remote is paired with the receiver. To disengage the stop, press start once again.
+\end{enumerate}
+
+The battery LED should now be blinking slower, this indicates the remote stop has been disengaged. The corner status lights of the Warthog will change from blinking red to solid red at the rear and white at the front assuming all other safety stop sources have been disengaged. The Warthog is now ready to drive.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=1.0\linewidth]{graphics/wireless-stop-remote.png}
+  \caption{Warthog's Wireless Stop Remote}
+  \label{wireless-stop}
+\end{figure}
+
+
+NOTE: If you’re not seeing any change in behaviour, please contact our support team.
+
+\pagebreak[4]
+
+\subsection{Futaba Controller}
+
+The long range remote control (RC) Futaba radio transmitter can be used to tele-operate the Warthog.
+To begin, slide the power switch to the ON position which is labelled in
+\autoref{futaba} below.
+
+\begin{warning}[]
+Caution: The speed adjustment knob should be turned initially all the way to the left while familiarizing yourself with the transmitter and slowly increasing it to get it moving.
+\end{warning}
+
+The position of the speed adjustment scale is shown in \autoref{futaba-screen} as 'CH4'.
+The transmitter needs to be enabled which is done using the Deadman switch.  The deadman switch is a two position spring loaded switch.  To enable the RC tele-operation, the switch needs to be held down.  If released, the switch returns to the up position to disable the robot.
+
+The left joy stick is used for the forward and reverse motion of the robot and the right joystick is used for turning.
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=1.0\linewidth]{graphics/futaba.png}
+  \caption{Futaba Radio Transmitter}
+  \label{futaba}
+\end{figure}
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=1.0\linewidth]{futaba-screen.pdf}
+  \caption{Futaba Radio Transmitter Screen}
+  \label{futaba-screen}
+\end{figure}
+
+
+If the Clearpath Robotics Outdoor Navigation software is installed on the Warthog, the Futaba remote controller (RC) must be turned OFF for autonomous missions to be properly executed by the navigation software.
+The Futaba RC will always publish messages to the \lstinline!/rc_teleop/cmd_vel! topic when it is ON, and since it has higher priority than the navigation's \lstinline!/cmd_vel!, the Warthog will not move if autonomous missions are sent and the RC is still ON.
+
+If you’re not seeing any action, check Contact on \autoref{contact} to get in touch with support.
+
+
+\pagebreak[4]
+
+\subsection{Body Lights}
+
+Warthog includes four RGB body lights, stacked in a pair on each corner of the chassis. These lights express system status according to \autoref{bodylights}. In the absence of one of the low-level conditions, they can be commanded from ROS to display indications from autonomy or other higher-level software.
+
+
+\bgroup
+\def\arraystretch{1.2}%
+\begin{table}[h]
+  \centering
+  \begin{tabular}{>{\columncolor{lightgrey}}>{\raggedright}m{.25\textwidth} p{.7\textwidth}} \hline
+
+  Solid red & The MCU is not in contact with the computer. That is, the rosserial connection is not active. This condition will be seen briefly on startup while Warthog's computer is booting up. If it persists, or is seen after initialization, either the base node on the PC has crashed, the network switch has failed, or a serious MCU error has occurred. If you suspect one of these conditions, please contact our support team. \\ \hline
+
+  Red flashing & Stop circuit is broken. Twist the mushroom buttons to ensure that they're unlatched, and check any external stop hardware, if present. \\ \hline
+
+  Flashing yellow & Motor drivers not yet ready to drive. The motors have a brief initialization sequence which must complete after a stop condition clears before they are ready to drive. If this condition persists, please contact our support team. \\ \hline
+
+  Headlights/taillights & When Warthog is ready to drive, the front will change from red to white. The intensity of the head and tail lights will increase slightly when actually in motion. This is the status which may be overridden by publishing your own light patterns to the cmd\_lights ROS topic. \\ \hline
+
+  \end{tabular}
+\newline
+\caption{Warthog Body Light Indications}
+\label{bodylights}
+\end{table}
+\egroup
+
+\pagebreak[4]
+
+
+\subsection{Wireless Access}
+
+To get Warthog connected to your local wifi, you must first access the internal computer
+using a wired connection. Open the chassis, lower the computer tray, and connect to the network port
+labeled \lstinline{STATIC} with a standard ethernet cable.
+
+\subsubsection{Static IP Configuration}
+
+Set your laptop's ethernet port to a static IP such as \lstinline{192.168.131.101}.  To do this in Ubuntu, follow the steps below:
+\begin{enumerate}
+  \item Click on the Wifi icon in the upper-right corner of your screen, and select \textbf{Edit Connections}
+  \item In the \textbf{Network Connections} window, under \textbf{Ethernet}, select your wired connection and then click \textbf{Edit}
+  \item Select the \textbf{IPv4 Settings} tab and then change the \textbf{Method} to \lstinline{Manual}
+  \item Click the \textbf{Add} button to add a new address
+  \item Enter a \lstinline{192.168.131.101} as the static IP under the \textbf{Address} column, and enter \lstinline{255.255.255.0} under the \textbf{NetMask} column, and then select \textbf{Save}
+\end{enumerate}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.5\linewidth]{wired_connection.png}
+  \caption{Static IP Configuration}
+  \label{staticip}
+\end{figure}
+
+\subsubsection{Connect to Warthog via SSH over ethernet}
+
+The next step is to connect to Warthog via SSH.  To do so execute the following in a terminal window:
+
+\begin{lstlisting}
+ssh administrator@192.168.131.1
+\end{lstlisting}
+
+You will be promoted to enter a password.  The default password is \lstinline{clearpath}.
+
+\subsubsection{Connect Warthog to Wireless Network}
+
+Now that you're connected via SSH over a wired connection, you can setup Warthog to connect to a local wifi network. To do this, you will need to use Netplan - a preinstalled network configuration tool.
+
+In a terminal window, execute the following command:
+
+\begin{lstlisting}
+sudo nano /etc/netplan/60-wireless.yaml
+\end{lstlisting}
+
+This will create an empty YAML file called \textbf{60-wireless.yaml} which you will populate to configure Warthog's wireless networking via Netplan.
+
+Copy and paste the following into the empty file you just created:
+
+\begin{lstlisting}
+network:
+  wifis:
+    WIRELESS_INTERFACE:
+      optional: true
+      access-points:
+        SSID_GOES_HERE:
+          password: PASSWORD_GOES_HERE
+      dhcp4: true
+      dhcp4-overrides:
+        send-hostname: true
+\end{lstlisting}
+
+Modify the following variables in the file. Replace \lstinline{WIRELESS_INTERFACE} with the name of Warthog's wifi interface (e.g. wlan0, wlp2s0, or wlp3s0). Replace \lstinline{SSID_GOES_HERE} with the name of the local wifi network. Replace \lstinline{PASSWORD_GOES_HERE} with the password of the local wifi network. 
+
+Once you are done modifying the file, save it by pressing \textbf{CTRL + O}, then \textbf{ENTER}. Close the file by pressing \textbf{CTRL + X}.
+
+Apply your new Netplan configuration and bring up the wifi connection.
+
+In a terminal window, execute the following command:
+
+\begin{lstlisting}
+sudo netplan apply
+\end{lstlisting}
+
+While you're still wired to Warthog, you'll need to identify the IP address of Warthog's wireless connection.
+
+In a terminal window, execute:
+
+\begin{lstlisting}
+ip a
+\end{lstlisting}
+
+A list of network connections will be displayed within the terminal. Locate the wireless network and make note of its IP address. Now that you know Warthog's wireless IP address, you may now exit the ethernet SSH session by executing \lstinline{exit}.
+
+Remove the ethernet cord and close up Warthog.   Now you can SSH into Warthog over the wireless network.  To do so, execute:
+
+\begin{lstlisting}
+ssh administrator@<IP_OF_WARTHOG>
+\end{lstlisting}
+
+SSH sessions allow you to control Warthog's internal computer.  You can do various things such as download packages, run updates, add/remove files, transfer files etc.
+
+\subsection{Remote ROS Connectivity}
+
+Now that Warthog is on the wireless network, you can access it via SSH or as a remote ROS master. Note that in the default configuration, the background ROS process running on Warthog launches with the \lstinline{robot_upstart} package. This is configured to set the \lstinline{ROS_HOSTNAME} environment variable to the Warthog PC's hostname.
+
+If your network resolves hostnames properly, connecting should be a matter of executing the following two lines in your desktop (or sourcing a script containing these lines):
+
+\begin{lstlisting}
+export ROS_MASTER_URI=http://cpr-warthog:11311     # Your robot's hostname
+export ROS_IP=192.168.12.123                       # Your computer's wireless IP address
+\end{lstlisting}
+
+If your network doesn't resolve hostnames, you may need to add the following line to your \lstinline{/etc/hosts} file:
+
+\begin{lstlisting}
+192.168.131.1    cpr-warthog                       # The robot's wireless IP address and hostname.
+\end{lstlisting}
+
+Once everything is set up correctly, try running \lstinline{rostopic list}. This will verify that your machine can see the robot's ROS master. Then try running \lstinline{rostopic echo /mcu/status}. This will verify that the robot PC can see your machine in order to stream topics to it.
+
+Please contact Clearpath Support if guidance is required in selecting and executing a remote access strategy.
+For more general details on how ROS works over TCP with multiple machines, please see:
+
+\url{http://wiki.ros.org/ROS/Tutorials/MultipleMachines}
+
+For help troubleshooting a multiple machines connectivity issue, see:
+
+\url{http://wiki.ros.org/ROS/NetworkSetup}
+
+\subsection{Visualizing Warthog}
+
+To command or observe Warthog from your desktop computer, first set up a basic ROS installation.  See the following page for details:
+
+\url{http://wiki.ros.org/noetic/Installation/Ubuntu}
+
+When your ROS install is set up, install the Warthog desktop packages:
+
+\begin{lstlisting}
+sudo apt-get install ros-noetic-warthog-desktop
+\end{lstlisting}
+
+Once your remote access to Warthog's ROS master is configured (as above), you can launch rviz, the standard ROS robot visualization tool:
+
+\begin{lstlisting}
+roslaunch warthog_viz view_robot.launch
+\end{lstlisting}
+
+From within rviz, you can use interactive markers to drive Warthog. You can visualize its published localization estimate, and you can visualize any attached sensors which have been added to its robot description XML (URDF).
+
+\pagebreak[4]
+
+From your desktop, you can also launch the standard RQT Robot Monitor. This will report the diagnostic output from Warthog's self-monitoring capabilities, as shown in \autoref{robotmonitor}:
+
+\begin{lstlisting}
+rosrun rqt_robot_monitor rqt_robot_monitor
+\end{lstlisting}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.70\linewidth]{graphics/rqt_robot_monitor.png}
+  \caption{Robot Monitor}
+  \label{robotmonitor}
+\end{figure}
+
+
+\subsection{Drive Train}
+
+The Warthog has the ability to be put into neutral which is controlled be the four levers (two per side) in the rockers.  The lever can be seen in \autoref{lever}.  Use the bolts to restrict the lever from moving as down in \autoref{drivetrain-n} where the drivetrain is in neutral.  The grove for the neutral position is marked with white and the bolt is also marked.  Pull the handle on the lever to move it into gear which can be seen in \autoref{drivetrain-g}.  Ensure the lever is in the green grove.  If the lever is difficult to move, rock the Warthog back and forth.  Do not try to force the lever to move.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.25\linewidth]{graphics/drivetrain.png}
+  \caption{Drivetrain lever}
+  \label{lever}
+\end{figure}
+
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.75\linewidth]{graphics/drivetrain-neutral.png}
+  \caption{Drivetrain in Neutral}
+  \label{drivetrain-n}
+\end{figure}
+
+
+\begin{figure}[!t]
+  \centering
+  \includegraphics[width=0.75\linewidth]{graphics/drivetrain-gear.png}
+  \caption{Drivetrain in Gear}
+  \label{drivetrain-g}
+\end{figure}
+
+
+\section{Safety Considerations}
+
+Warthog is a powerful, heavy, fast moving robotic platform. Please read the following safety information carefully.
+
+\subsection{General Warnings}
+
+For the safety of yourself and others, always conduct initial experiments and software development with the motors not engaged.  Whenever the robot is not being operated and the motors are engaged, keep it in a stop state.  Do not ride on the vehicle, it can accelerate and brake quickly.
+
+When starting out, favour slower wheel speeds. Warthog's control loops can accurately maintain velocities as low as 0.1 m/s. Operating at such speeds will give you more time to react if things don’t go quite as you expect.
+
+When enabling the system using the GO button on the wireless remote, be sure to stand well back from the Warthog. User code running on the Warthog may still be trying to command the motors, and this can result in sudden and unexpected movement of the vehicle. Be prepared to stop the system again using the wireless remote.
+
+
+\subsection{Maneuverability in Water}
+
+Before entering the water it is important to ensure that:
+
+\begin{itemize}[nolistsep]
+  \item Bilge pumps are functioning properly.  See Bilge Pump section on page \pageref{bilgepumps} for more information.
+  \item The side panels and top cover are properly fastened down
+  \item All access panels are fastened down
+\end{itemize}
+
+
+\subsection{Pinch Points}
+
+When operating the Warthog  it is important to maintain a safe distance away from the unit. The suspension seen in \autoref{pinchpoints} has the ability to pivot.  Do not place fingers anywhere along the suspension link as it can result in injury.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.75\linewidth]{graphics/Warthog_pinch_points.jpg}
+  \caption{Warthog Pinch Points}
+  \label{pinchpoints}
+\end{figure}
+
+\pagebreak[4]
+\subsection{Stop Buttons}
+
+The Stop system on the Warthog has two major components: The hardwired Stop switches and the wireless stop remote.
+
+\subsubsection{Hardwired Stop}
+
+Pressing down one of the 4 red mushroom Stop buttons around the Warthog will disable power to the SEVCON devices (Key switch input on PIN 1). This disables the large contactors and also enables the brakes (passive, spring activated when not powered). The status indicator lights around the Warthog will flash red.
+
+To reset a Stop button, the top of the button should be twisted until the button pops out again. The GO button on Wireless remote must then pressed. The Warthog is fully enabled once a relay click is heard, and the front lights change to white.
+
+\subsubsection{Wireless Remote Stop}
+
+To operate the Warthog, the wireless remote stop also has to be powered on (by holding the Power button for at least 1 second). The remote Stop button toggles the Stop status. It must be pressed once to enable Stop, and pressed again to return to an Stop reset ready state. The GO button on the remote will then reset the stop condition. The wireless remote will shut itself off after 15 minutes of inactivity. Thus, the user is suggested to toggle the reset button (or either AUX 1 or 2) every few minutes to keep the remote awake. This is done to ensure that the user does not forget about the wireless remote, leading to a safety hazard.
+
+Always ensure the Stop button is accessible at all times. Avoid mounting payloads that extend over the rear of Warthog and would occlude the Stop buttons.
+
+\subsection{Electrical System}
+
+The largest electrical safety consideration with the Warthog system is the VBat connection. As it is pulled straight from the batteries, it may have a voltage of 48V (depleted) - 62V (Charging) and can be used to power large external devices. This voltage can cause electrical shock if directly contacted, and is fused internally with an inline fuse at 10A. In general, take care to connect or disconnect devices preferably only when the entire system is powered off via the external switch on the rear (main power switch).
+
+Take note that triggering a Stop condition only disables voltage to the SEVCON drivers and motors, not the rest of the system which includes the connectors.
+
+The labelled status LEDs on the user panels indicate status of the system voltages. If a LED is not lit, then it's most likely that a system fuse has blown. Contacting Clearpath support is the best option.
+
+To ensure safety, please also observe the following precautions:
+
+\begin{itemize}[nolistsep]
+  \item Do not tamper with the battery terminals or wiring.
+  \item Consult Clearpath Robotics support if you need to service the battery pack.
+  \item Do not lay tools or other objects on top of the battery.
+  \item Do not move the robot while charging the battery.
+  \item Charge the battery only with the charger provided by Clearpath Robotics.
+  \item Please dispose of the batteries properly, or return the batteries to Clearpath Robotics to do so.
+\end{itemize}
+
+\subsection{Recommended Safe Work Procedures}
+
+Clearpath Robotics recommends the following procedures be followed to reduce the likelihood of harm:
+
+\begin{itemize}[nolistsep]
+ \item Maintain a safe distance of at least ten meters from the robot whenever possible
+ \item Never assume that the vehicle can be reliably stopped on command
+ \item Assert a stop using the remote pendant before approaching the vehicle
+ \item Always be vigilant around the vehicle, even when a stop is asserted
+ \item Keep hands and fingers away from the suspension linkage components at the rear of the vehicle
+ \item Perform no maintenance or troubleshooting on the vehicle without training and familiarisation
+ \item Follow electrical safety best practices when working with electrical systems and components
+ \item Disconnect battery using main disconnect at rear of vehicle before working inside vehicle
+ \item Wear personal protective equipment including high-visibility clothing, head and eye protection while operating, observing or working on the vehicle
+ \item Never climb on or ride the vehicle
+ \item Never lie on the ground under or near the vehicle
+ \item Never approach the vehicle while it is operating in water
+ \item Avoid operating the vehicle on slopes and grades
+ \item Never stand down-hill of the vehicle
+ \item Never place the remote stop pendant on or inside the vehicle
+ \item Operate the vehicle at the lowest speed possible
+ \item Never attempt to defeat a safety function for any reason
+ \item When working on or around the vehicle always disconnect the motors using the drivetrain levers as described in the user manual
+ \item Chock the vehicle wheels when the robot will be stationary for more than a few seconds
+ \item Never disconnect the vehicle motors using drivetrain levers when on a slope
+ \item Never work on the vehicle on a slope
+ \item Replace fuses only with identical product from specified manufacturer
+ \item Discontinue use and contact Clearpath Robotics support at the first sign of strange vehicle behaviour
+ \item Keep tools and loose parts away from electrical components and out of the robot’s bays
+ \item Do not attempt to move or operate the vehicle while charging the batteries
+ \item Check the functionality of stop systems on a regular basis and before and after each use
+\end{itemize}
+
+
+
+\section{Payload Integration Guide}
+
+If you want to attach custom hardware to Warthog, you will have to take care of mechnical mounting, electrical supply, and software integration.  This section aims to equip you with respect to these challenges.
+
+\subsection{System Architecture}
+
+Like most robotic systems, Warthog has an onboard PC coupled to a custom microcontroller board. The microcontroller board handles IO, system and battery monitoring, and provides an interface to the CAN-controlled motor drivers. See the diagram in \autoref{systemarchitecture} for more details.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=1.0\linewidth]{warthog-logic-conn.pdf}
+  \caption{System Architecture}
+  \label{systemarchitecture}
+\end{figure}
+
+Using ROS to interface with the Warthog, the ROS API described in \autoref{tab:rosapi} can be used and the node connections can be seen in \autoref{fig:rqt-graph}
+
+\bgroup
+\begin{table}[htp]
+\begin{tabular}{  l  l  p{7cm} }
+\hline
+Topic & Message Type & Purpose \\ \hline
+
+\lstinline!/cmd_vel! & \lstinline!geometry_msgs/Twist! &
+Input to Warthog's kinematic controller. Publish here to make Warthog go. \\ \hline
+\lstinline!/odometry/filtered! & \lstinline!nav_msgs/Odometry! &
+Published by \lstinline!robot_localization!, a filtered localization estimate based
+on wheel odometry (encoders) and  integrated IMU. \\ \hline
+
+\lstinline!/imu/data! & \lstinline!sensor_msgs/IMU! &
+Published by \lstinline!imu_filter_madgwick!, an orientation estimate based on Warthog's
+internal gyroscope, accelerometer, and magnetometer. \\ \hline
+
+\lstinline!/status! & \lstinline! warthog_msgs/Status! &
+Low-frequency status data for Warthog's systems. This information is republished in human
+readable form on the \lstinline!diagnostics! topic and is best consumed with the Robot
+Monitor. \\ \hline
+
+\lstinline!/cmd_lights! & \lstinline! warthog_msgs/Lights! &
+Input to controlling the Warthog's body lights when not in an error state. \\ \hline
+
+
+\lstinline!/SIDE/speed! & \lstinline! std_msgs/Float64! &
+Input velocity for each motor where \textit{SIDE} is either left or right.  This should not be published to directly, commands from \lstinline!/cmd_vel! will be converted to this.\\ \hline
+
+\lstinline!/SIDE/status/speed! & \lstinline! std_msgs/Float64! &
+Reported velocity from each motor's encoder where \textit{SIDE} is either left or right. \\ \hline
+
+\lstinline!/SIDE/status/fault! & \lstinline! std_msgs/Bool! &
+Reported state from each motor controller where \textit{SIDE} is either left or right. \\ \hline
+
+\lstinline!/SIDE/status/motor_temperature! & \lstinline! std_msgs/Int32! &
+Reported temperature from each motor controller where \textit{SIDE} is either left or right. \\ \hline
+
+\end{tabular}
+\caption{Warthog ROS API Topics}
+\label{tab:rosapi}
+\end{table}
+\egroup
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.75\linewidth]{graphics/rqt-graph.png}
+  \caption{Warthog Node and Topic connections}
+  \label{fig:rqt-graph}
+\end{figure}
+\clearpage
+
+\pagebreak[4]
+\subsection{Mechanical Mounting}
+\label{mechanical}
+
+The payload integration area can be used to mount external payloads on top of the Warthog.
+
+
+\subsubsection{Payload Integration Guidelines}
+
+\begin{itemize}[nolistsep]
+
+\item 27.75” is the maximum allowed width of any installed payload (this assumes that the payload is also centered across the width of the UGV chassis.
+
+\item  No part of the payload may extend over the sheet metal housings of the drive units or into the small (~2”) gaps between the chassis and drive units. Damage to both the UGV and the payload WILL result.
+
+\item  The chassis has a removable access cover measuring ~46.25” x 26.25”. This access cover is supported underneath by two adjustable cross members. Regardless of payload, it is imperative that both cross members remain installed (approximately evenly spaced) to provided required support to the access cover. Consider that any payload installed above the top deck will prevent access to the chassis through the access cover, without first removing the installed payload.
+
+\item  The rotation of the suspension differential link in the horizontal plane will allow the payload to extend beyond the chassis top deck in both fore and aft locations. The amount of this payload extension (overhang) is dependent on several factors, including the weight and method of attachment of the payload as well as the terrain in which the UGV will operate. Ensure that the amount of overhanging payload allows the UGV to operate safely and does not contact the terrain, especially when crossing steep and/or deep gullies.
+
+\item  The available internal chassis volume is approximately 17.5” long x 26” wide x 9.5” high. This space is located at the center of the chassis between two battery packs. Consider that anything placed inside the chassis MUST be secured as to not move or shift during UGV operation. Any payload secured inside the chassis must also be insulated from coming into contact with the battery wiring and terminals.
+
+\end{itemize}
+
+
+
+
+\begin{warning}[]
+Permanent damage resulting from custom modifications to the mounting plate is not covered under warranty and may not be supported by Clearpath Support.  Please contact our support team if you require assistance or have any questions relating to custom modifications.
+\end{warning}
+
+
+\pagebreak[4]
+\subsection{Electrical Integration}
+\label{electrical}
+
+The user power receptacles located in the User Panel are capable of supplying 12Vdc, 24Vdc, and unregulated battery voltage (approximately 48Vdc) for powering Warthog's payloads. See \autoref{userpower} for a labeled illustration and \autoref{userpowerpinout} for the pin assignments. Ensure you select a contact that's appropriate for the gauge of wire used. The mating connector for ``USER POWER'' is \href{https://www.usbfirewire.com/parts/rr-153274-23050.html#RR-153274-23050}{USBFirewire RR-153274-23050} and the mating connector for ``SERIAL'' is \href{https://www.usbfirewire.com/parts/rr-153274-23040.html#RR-153274-23040}{USBFirewire RR-153274-23040}.
+
+The electrical system for the chassis can be seen in \autoref{elec-chassis}. Additionally, left and right drive units electrical system is decribed in \autoref{elec-left} and \autoref{elec-right} respectivelty.
+
+
+
+
+
+\begin{figure}[!h]
+  \centering
+  \includegraphics[width=1.0\linewidth]{graphics/User_Panel_Labeled.png}
+  \caption{Warthog User Panel}
+  \label{userpower}
+\end{figure}
+
+
+\begin{warning}[Risk of Fire]
+For continued protection against risk of fire, always replace fuses only with those of the same type and rating.
+\end{warning}
+
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=1.0\linewidth]{graphics/Breakout_pinouts.png}
+  \caption{Warthog Power User Connector Pinout}
+  \label{userpowerpinout}
+\end{figure}
+
+\pagebreak
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\linewidth]{elec-chassis.pdf}
+  \caption{Warthog Chassis Electrical System}
+  \label{elec-chassis}
+\end{figure}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\linewidth]{elec-left.pdf}
+  \caption{Warthog Left Drive Unit Electrical System}
+  \label{elec-left}
+\end{figure}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.9\linewidth]{elec-right.pdf}
+  \caption{Warthog Right Drive Unit Electrical System}
+  \label{elec-right}
+\end{figure}
+
+\subsection{Software Integration}
+
+ROS has a large ecosystem of sensor drivers, some of which include pre-made URDF description and even simulation configurations.  Please see the following page on the ROS wiki for a partial list:
+
+\url{http://wiki.ros.org/Sensors}
+
+For the best experience, consider purchasing supported accessories from Clearpath Robotics for your Warthog. This will include simulation, visualization, and driver support for those accessories.  However, we will happily help you get started with integrating your own devices as well.
+
+\section{Maintenance}
+
+\subsection{Battery \& Charging}
+
+\subsubsection{Overview}
+
+Warthog contains a 48V lead-acid battery pack, consisting of four 12V lead-acid batteries, or a lithium battery bank, consisting of four 118Ah 12.8V batteries
+connected in a 4S1P configuration with a single Battery Management System (BMS) control unit. Battery configuration may vary with each unit. In order to
+maximize performance, it's important to ensure that the battery level across each set of lead-acid or lithium batteries is within 0.1-0.2V.
+If the battery packs exceed this tolerance, it's advised to charge them to within tolerance before wiring these packs in parallel. The overall battery life
+will vary depending upon the usage of the unit.
+
+\subsubsection{Battery Management System}
+
+\begin{note}
+If your Warthog is equipped with a lead-acid battery pack, you can ignore this section on the Battery Management System.
+\end{note}
+
+If your Warthog is equipped with a lithium battery bank, it is also equipped with a single Battery Management System (BMS) control unit.
+The main function of the BMS is to:
+
+\begin{itemize}[nolistsep]
+  \item Protect the individual modules from being over charged or over discharged.
+  \item Protect the modules from operating outside of their acceptable temperature range.
+  \item Provide status information to higher level systems via a CAN interface.
+  \item Provide independent system management without a higher level control system.
+  \item Provide status, warning and error messages from each of the modules connected to the battery power system.
+  \item Control the charging operation.
+  \item Perform module to module balancing of the system, the battery module will control cell balancing within itself.
+\end{itemize}
+
+There is a main power contactor which is controlled by the BMS unit and is placed in such a way that it controls all power to the system.
+Upon turning on the main disconnect switch:
+
+\begin{enumerate}
+  \item The BMS powers up first and begins communicating with all of the battery modules in the system.
+  \item If they are all present and have no errors the BMS will close the main contactor and allow the Warthog to power up as normal,
+  this process can take a few seconds before the main contactor closes.
+  \begin{enumerate}
+    \item  If all the modules are not present, the system State of Charge (SOC) is too low, or there are errors being reported by any of the
+    modules in the system, the contactor will not close, and the system will not power up.
+  \end{enumerate}
+  \item Similarly, if a user is in discharge mode (the Warthog is in use) and any errors are detected, or if the SOC falls to a cut off point,
+  the contactor will open and remove power from the system to protect the modules.
+  \begin{enumerate}
+    \item It is not good practice to run the SOC to 0\%. This will decrease the life of the battery module. In general, keeping the SOC to a
+    minimum of 30-50\% can increase the lifetime of the batteries.
+    \item As a note, the system SOC is identical to the module with the lowest SOC in the system, so if three modules are at 45\% SOC, and
+    one module is at 25\%, then the SOC of the system is 25\%, and the BMS will act accordingly cutting off power to protect the module with
+    the lowest SOC. Cell balancing and proper charging techniques are important to maintaining good battery health.
+  \end{enumerate}
+  \item The Warthog can be charged when the unit is powered and running, and can also be charged when the unit is not powered (main disconnect switch is open).
+  \begin{enumerate}
+    \item The charger has been configured and wired in a way that the BMS is actually controlling the charger and can turn it off, and on, depending
+    on the status of the charging cycle.
+    \item Even though the unit can be charged while running, this process does not allow for proper cell balancing to occur. It will allow for bulk charge
+    to occur to regain most of the charge in the system, however, repeatedly charging in this manner will allow each module to become out of balance with
+    the other modules. If this process if followed long enough the SOC values for each module can vary by a substantial amount. The larger the variation,
+    the longer it will take to fully balance the system. Therefore it is recommended (depending on use) that at least once every two to three weeks that
+    \textbf{the system be completely charged while the main disconnect switch is in the off position.} Doing so will allow the BMS to go through an
+    equalization phase where the charger is being turned on and off by the BMS to balance the voltages across each cell layer, in each module across the system.
+    \textbf{This is a very important step in maintain battery health, and getting the maximum lifetime out of the battery system.}
+    \item Refer to \autoref{bms_topics} to view the necessary topics through the ROS API.
+  \end{enumerate}
+  \item To allow for this level of control there are three contactors in the system:
+  \begin{enumerate}
+    \item The main contactor for discharge of the system.
+    \item The charge contactor to connect to the output of the charger.
+    \item The charge control relay to turn the charger outputs on and off and control the cell balancing or equalization phase of the charge cycle.
+  \end{enumerate}
+\end{enumerate}
+
+\paragraph{Relevant BMS Rostopics}
+\label{battery_ros}
+
+\autoref{bms_topics} shows a couple topics that will be very useful in monitoring battery health, as discussed in the section above.
+\bgroup
+\begin{table}[htp]
+\centering
+\begin{tabular}{  l  l  p{7cm} }
+\hline
+Topic & Purpose \\ \hline
+
+\lstinline!/bms/system_status! & Primarily to view \lstinline!state_of_charge! (\%)  \\ \hline
+\lstinline!/bms/system_measurements! & Primarily to view \lstinline!battery_system_current! (A) \\ \hline
+
+\end{tabular}
+\caption{BMS ROS API Topics}
+\label{bms_topics}
+\end{table}
+\egroup
+
+The \lstinline{battery_system_current} topic will be positive when the batteries are charging, indicating that current is flowing into the batteries.
+The lights on the charger unit itself will also indicate when the device is charging.
+
+\paragraph{To Connect the Charger}
+
+\begin{enumerate}[nolistsep]
+  \item Plug in the charger DC output cable (heavier gauge cable).
+  \item Plug in the charger auxiliary control cable.
+  \item Plug the charger into AC power (directly to the wall outlet, no extension cords).
+  \item This can be done with or without power on Warthog being on (however the note above applies, at least once every couple of weeks the charge
+  process needs to be allowed to fully balance the system).
+\end{enumerate}
+
+\paragraph{To Disconnect the Charger}
+
+\begin{enumerate}[nolistsep]
+  \item Unplug the charger from AC power.
+  \item Unplug the charger auxiliary cable.
+  \item Unplug the charger DC output cable (heavier gauge cable).
+\end{enumerate}
+
+\paragraph{Battery Pack Specifications}
+
+Key battery system specifications are listed in \autoref{batteryspecs}.
+
+\bgroup
+\def\arraystretch{1.2}%
+\begin{table}[h]
+  \centering
+  \begin{tabular}{>{\columncolor{lightgrey}}>{\raggedright}m{.30\textwidth} p{.70\textwidth}} \hline
+
+  System Voltage ( nominal ) & 51.2V ( up to 59 V while charging ) \\ \hline
+  System Capcity & 118 Ah \\ \hline
+  System Energy & 6.041 kWh \\ \hline
+  Continuous Discharge Current & 150 A \\ \hline
+  Peak Discharge Current ( 30 sec ) & 300 A \\ \hline
+  Discharge Temperature Range & -10 °C to 50 °C \\ \hline
+  Charge Temperature Range & 0 °C to 45 °C \\ \hline
+
+  \end{tabular}
+\newline
+\caption{Lithium Battery Pack Specifications}
+\label{batteryspecs}
+\end{table}
+\egroup
+
+
+\subsubsection{General Battery Safety and Maintenance}
+
+Always exercise caution and observe the following safety practices when connecting, disconnecting or handling batteries:
+
+\begin{itemize}[nolistsep]
+  \item Batteries are high voltage, high current.
+  \item Battery packs must be properly fastened down to ensure they do not move when the Warthog is in operation.
+  \item Ensure that the battery packs are evenly distributed throughout the Warthog to maximize stability.
+  \item Battery levels on the unit should be checked on a regular basis.  It's important to maintain the battery voltage at a suitable level for proper operation.
+  \item When additional battery packs are added to the system, it's important to connect the positive terminal first to the main power of the Warthog before connecting ground.
+  \item When installing additional battery packs, disconnect the ground on all battery packs presently in the unit before connecting the positive terminal of the new battery packs.
+\end{itemize}
+
+\subsubsection{Long-term Storage}
+
+When storing Warthog for long periods of time, it's important to properly maintain the batteries to fully maximize their life.  Consider the following procedure when placing Warthog in long-term storage:
+
+\begin{itemize}[nolistsep]
+  \item Fully charge Warthog, turn it off and put it into storage.  Once a week, connect power to the charger and allow the charger to top up the battery for an hour or so.
+\end{itemize}
+
+Please contact Clearpath Robotics for additional information about Warthog's battery pack.
+
+\subsection{Tread Upgrade}
+If your unit came equipped with the tread upgrade, please keep the following considerations in mind
+
+\begin{itemize}
+\item The tread drive units pull considerably more current to operate. It is advised to operate a tread Warthog at reduced speeds, either through ROS commands or by reducing the speed scale when operating with the Futaba controller.
+\item Due to the increased drive current, expect lower battery life than a wheeled Warthog. It is recommend to drive at reduced speeds to increase battery life.
+\item It is possible to trigger an over current error in the motor controller by increasing speed drastically shortly after resetting a stop condition. The system's body lights will seem as if the unit is ready to drive, however it will not respond to drive commands. To clear this state, simply cycle another stop condition, and ramp up speeds slower.
+\end{itemize}
+
+\section{Contact}
+\label{contact}
+
+Clearpath is committed to your success with Warthog. Please get in touch with us and we’ll do our best to get
+you rolling again quickly: \url{support@clearpathrobotics.com}.
+
+To get in touch with a salesperson regarding Warthog or other Clearpath Robotics products, please email
+\url{sales@clearpathrobotics.com}.
+
+If you have an issue that is specifically about ROS and is something which may be of interest to the broader
+community, consider asking it on \url{answers.ros.org}. If you don’t get a satisfactory response, please ping us and
+include a link to your question as posted there. If appropriate, we’ll answer in the ROS Answers context for
+the benefit of the community.
+
+\appendix
+
+\thispagestyle{empty}
+\includepdf[pages=1-4]{charger.pdf}
+\thispagestyle{empty}
+
+\end{document}

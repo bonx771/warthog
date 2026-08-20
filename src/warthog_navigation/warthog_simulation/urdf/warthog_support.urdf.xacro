@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+  <robot name="warthog_support" xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <link name="warthog_support">
+      <visual>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://warthog_simulation/meshes/warthog_support.stl"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <geometry>
+          <mesh filename="package://warthog_simulation/meshes/warthog_support.stl"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+        <mass value="0.268"/>
+        <inertia ixx="0.124" ixy="-1.531e-16" ixz="-3.003e-16" iyy="0.252" iyz="0.028" izz="0.236"/>
+      </inertial>
+    </link>
+
+    <joint type="fixed" name="support_to_warthog">
+      <origin xyz="0.4 0 0" rpy="0 0 0" />
+      <parent link="top_chassis_link" />
+      <child link="warthog_support" />
+    </joint>
+
+</robot>

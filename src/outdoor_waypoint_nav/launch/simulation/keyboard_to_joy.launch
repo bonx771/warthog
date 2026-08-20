@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+
+<launch>
+  <node ns="/outdoor_waypoint_nav"
+        pkg="outdoor_waypoint_nav"
+        type="keyboard_to_joy.py"
+        name="keyboard_to_joy"
+        output="screen"
+        launch-prefix="bash -lc">
+    <param name="output_topic" value="/joy_teleop/joy" />
+    <param name="cmd_topic" value="/joy_teleop/cmd_vel" />
+    <param name="button_count" value="8" />
+  </node>
+</launch>

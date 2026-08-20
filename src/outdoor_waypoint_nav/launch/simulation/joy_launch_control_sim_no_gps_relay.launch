@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Scenario K1 to K3 wrapper: inherit all legacy simulation controls without
+       creating a second publisher on gps/fix_selected. -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="send_goals_launch_file"
+       default="$(find outdoor_waypoint_nav)/launch/include/send_goals_experiment_sim.launch" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/simulation/joy_launch_control_sim.launch">
+    <arg name="selected_fix_topic" value="$(arg selected_fix_topic)" />
+    <arg name="relay_clean_gps" value="false" />
+    <arg name="send_goals_launch_file" value="$(arg send_goals_launch_file)" />
+  </include>
+</launch>

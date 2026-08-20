@@ -1,0 +1,160 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <!-- Nạp thông số chung cho costmap global và local costmap. -->
+    <rosparam file="$(find warthog_slam)/params/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find warthog_slam)/params/costmap_common_params.yaml" command="load" ns="local_costmap" />
+
+    <!-- Nạp profile mặc định của local planner và move_base -->
+    <rosparam file="$(find warthog_slam)/params/base_local_planner_params.yaml" command="load" />
+    <rosparam file="$(find warthog_slam)/params/move_base_params.yaml" command="load" />
+
+    <!-- Tần số move_base gửi lệnh vận tốc cho robot, đơn vị Hz. -->
+    <param name="controller_frequency" value="10.0" />
+    <!-- Tần số global planner tính lại đường đi từ robot tới goal, đơn vị Hz. -->
+    <param name="planner_frequency" value="5.0" />
+    <!-- Thời gian cho controller cố bám đường trước khi coi là lỗi, đơn vị giây. -->
+    <param name="controller_patience" value="5.0" />
+    <!-- Thời gian cho planner cố tìm đường trước khi coi là lỗi, đơn vị giây. -->
+    <param name="planner_patience" value="5.0" />
+    <!-- Nếu robot không tiến đủ trong thời gian này thì move_base coi là oscillation, đơn vị giây. -->
+    <param name="oscillation_timeout" value="5.0" />
+    <!-- Quãng đường tối thiểu để reset kiểm tra oscillation, đơn vị mét. -->
+    <param name="oscillation_distance" value="0.08" />
+    <!-- Tắt recovery mặc định của move_base để tránh tự xoay/xóa map ngoài ý muốn trong sim. -->
+    <param name="recovery_behavior_enabled" value="false" />
+    <!-- Không cho recovery mặc định xoay tại chỗ để clear costmap. -->
+    <param name="clearing_rotation_allowed" value="false" />
+
+    <!-- Danh sách recovery behavior nếu bật recovery_behavior_enabled. -->
+    <rosparam param="recovery_behaviors">
+      - name: conservative_reset
+        type: clear_costmap_recovery/ClearCostmapRecovery
+      - name: aggressive_reset
+        type: clear_costmap_recovery/ClearCostmapRecovery
+    </rosparam>
+
+    <!-- Bán kính clear costmap cho recovery nhẹ, đơn vị mét. -->
+    <param name="conservative_reset/reset_distance" value="1.5" />
+    <!-- Bán kính clear costmap cho recovery mạnh, đơn vị mét. -->
+    <param name="aggressive_reset/reset_distance" value="3.0" />
+
+    <!-- Sai số góc goal được chấp nhận, rad; lớn hơn thì robot ít cần xoay đúng hướng tại waypoint. -->
+    <param name="TrajectoryPlannerROS/yaw_goal_tolerance" value="3.14" />
+    <!-- Khi đã vào vùng XY tolerance thì giữ trạng thái đã đạt XY, không bị trôi ra rồi tính lại. -->
+    <param name="TrajectoryPlannerROS/latch_xy_goal_tolerance" value="true" />
+    <!-- Tốc độ tiến tối đa local planner được phép chọn, m/s. -->
+    <param name="TrajectoryPlannerROS/max_vel_x" value="4.2" />
+    <!-- Tốc độ tiến tối thiểu khi planner chọn chuyển động tiến, m/s. -->
+    <param name="TrajectoryPlannerROS/min_vel_x" value="0.35" />
+    <!-- Gia tốc tiến tối đa, m/s^2. -->
+    <param name="TrajectoryPlannerROS/acc_lim_x" value="4.0" />
+    <!-- Tốc độ quay trái tối đa, rad/s. -->
+    <param name="TrajectoryPlannerROS/max_vel_theta" value="1.0" />
+    <!-- Tốc độ quay phải tối đa, rad/s; giá trị âm cho chiều ngược lại. -->
+    <param name="TrajectoryPlannerROS/min_vel_theta" value="-1.0" />
+    <!-- Tốc độ quay tại chỗ tối thiểu để robot không bị ì, rad/s. -->
+    <param name="TrajectoryPlannerROS/min_in_place_vel_theta" value="0.30" />
+    <!-- Gia tốc góc tối đa, rad/s^2. -->                                                                                                                                                                                                                              
+    <param name="TrajectoryPlannerROS/acc_lim_theta" value="2.5" />
+    <!-- Thời gian mô phỏng mỗi trajectory ứng viên để chấm điểm, giây. -->
+    <param name="TrajectoryPlannerROS/sim_time" value="3.0" />
+    <!-- Số mẫu tốc độ tiến dùng để sinh trajectory ứng viên. -->
+    <param name="TrajectoryPlannerROS/vx_samples" value="10" />
+    <!-- Số mẫu tốc độ quay dùng để sinh trajectory ứng viên. -->
+    <param name="TrajectoryPlannerROS/vtheta_samples" value="20" />
+    <!-- Tần số nội bộ của TrajectoryPlannerROS, thường khớp controller_frequency. -->
+    <param name="TrajectoryPlannerROS/controller_frequency" value="10.0" />
+    <!-- Trọng số bám global path; tăng thì robot bám sát đường hơn. -->
+    <param name="TrajectoryPlannerROS/pdist_scale" value="0.9" />
+    <!-- Trọng số tiến tới goal; tăng thì robot ưu tiên đi thẳng về goal hơn. -->
+    <param name="TrajectoryPlannerROS/gdist_scale" value="1.2" />
+    <!-- Trọng số tránh vật cản; tăng thì robot giữ khoảng cách vật cản nhiều hơn. -->
+    <param name="TrajectoryPlannerROS/occdist_scale" value="0.45" />
+    <!-- Tắt chấm điểm theo hướng nhìn, dùng scoring theo path/goal/obstacle là chính. -->
+    <param name="TrajectoryPlannerROS/heading_scoring" value="false" />
+    <!-- Khoảng nhìn trước nếu bật heading_scoring, đơn vị mét. -->
+    <param name="TrajectoryPlannerROS/heading_lookahead" value="1.2" />
+
+    <rosparam param="global_costmap">
+      # Costmap toàn cục dùng để planner tìm đường lớn từ robot tới goal.
+      # global_frame là frame quy chiếu của bản đồ; robot_base_frame là frame thân robot.
+      global_frame: map
+      robot_base_frame: base_link
+      # Tần số cập nhật dữ liệu costmap và tần số publish ra topic để xem/debug.
+      update_frequency: 5.0
+      publish_frequency: 3.0
+      # Kích thước vùng costmap toàn cục, đơn vị mét.
+      width: 100.0
+      height: 100.0
+      # Độ phân giải mỗi ô costmap, m/cell.
+      resolution: 0.1
+      # Không dùng static map; costmap lấy vật cản động từ sensor.
+      static_map: false
+      # rolling_window true: cửa sổ costmap trượt theo robot.
+      rolling_window: true
+      # Cho phép TF trễ tối đa 1 giây trước khi báo lỗi transform.
+      transform_tolerance: 1.0
+      # Nới footprint robot thêm 0.02 m để an toàn hơn.
+      footprint_padding: 0.02
+      # false: vùng chưa biết không bị coi là vật cản cứng.
+      track_unknown_space: false
+      # ObstacleLayer lấy vật cản từ sensor; InflationLayer bơm vùng nguy hiểm quanh vật cản.
+      plugins:
+        - {name: obstacles_layer, type: "costmap_2d::ObstacleLayer"}
+        - {name: inflater_layer, type: "costmap_2d::InflationLayer"}
+      inflater_layer:
+        # Bán kính bơm cost quanh vật cản, mét.
+        inflation_radius: 2.0
+        # Độ dốc giảm cost theo khoảng cách; nhỏ hơn thì vùng cost cao lan rộng hơn.
+        cost_scaling_factor: 0.8
+    </rosparam>
+
+    <rosparam param="local_costmap">
+      # Costmap cục bộ dùng để local planner né vật cản gần robot.
+      # local_costmap dùng odom để mượt và ít nhảy hơn map.
+      global_frame: odom
+      robot_base_frame: base_link
+      # Local costmap cập nhật/publish nhanh hơn vì dùng cho điều khiển sát robot.
+      update_frequency: 10.0
+      publish_frequency: 5.0
+      # Kích thước vùng nhìn gần quanh robot, đơn vị mét.
+      width: 15.0
+      height: 15.0
+      # Độ phân giải mỗi ô costmap, m/cell.
+      resolution: 0.1
+      # Không dùng static map cho local costmap trong sim GPS waypoint.
+      static_map: false
+      # Cửa sổ local costmap luôn trượt theo robot.
+      rolling_window: true
+      # Cho phép TF trễ tối đa 1 giây.
+      transform_tolerance: 1.0
+      # Nới footprint robot thêm 0.02 m.
+      footprint_padding: 0.02
+      # Các layer xử lý vật cản gần robot và vùng an toàn xung quanh vật cản.
+      plugins:
+        - {name: obstacles_layer, type: "costmap_2d::ObstacleLayer"}
+        - {name: inflater_layer, type: "costmap_2d::InflationLayer"}
+      inflater_layer:
+        # Bán kính bơm cost local nhỏ hơn global để robot vẫn luồn được trong vùng gần.
+        inflation_radius: 1.0
+        # Độ dốc giảm cost theo khoảng cách vật cản.
+        cost_scaling_factor: 0.8
+    </rosparam>
+
+    <!-- Global planner dùng Navfn để tính đường trên global_costmap. -->
+    <param name="base_global_planner" type="string" value="navfn/NavfnROS" />
+    <!-- Local planner sinh trajectory vận tốc để bám đường và tránh vật cản. -->
+    <param name="base_local_planner" value="base_local_planner/TrajectoryPlannerROS"/>
+
+    <!-- move_base đọc odom từ EKF/map-filtered odometry thay vì topic odom mặc định. -->
+    <remap from="odom" to="/outdoor_waypoint_nav/odometry/filtered_map" />
+    <!-- Lệnh vận tốc đi qua topic trung gian để safety/avoidance node có thể can thiệp. -->
+    <remap from="cmd_vel" to="/cmd_vel_intermediate" />
+    <!-- LaserScan phía trước dùng cho obstacle layer/costmap. -->
+    <remap from="scan" to="/front/scan" />
+  </node>
+
+</launch>

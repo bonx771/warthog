@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Terminal 2 for Scenario 3. Terminal 1 must already be running
+    outdoor_waypoint_nav.launch. This file intentionally does not include the
+    navigation stack, so EKF/navsat/move_base are never duplicated.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="start_after_waypoint_index" default="2" />
+  <arg name="outage_distance_m" default="20.0" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/experiment_runs" />
+
+  <!-- Reset the route explicitly in case a preceding Scenario-4 run left its
+       generated route on the global parameter server. -->
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/gnss_outage_gate.launch">
+    <arg name="input_topic" value="/gps/fix" />
+    <arg name="output_topic" value="/gps/fix_off" />
+    <arg name="start_after_waypoint_index" value="$(arg start_after_waypoint_index)" />
+    <arg name="outage_distance_m" value="$(arg outage_distance_m)" />
+  </include>
+
+  <!-- /gps/fix_off is intentionally silent during the outage. Relaying it to
+       the selected input therefore makes navsat_transform see a real GNSS loss. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_3_outage_gps_to_navsat"
+        args="/gps/fix_off $(arg selected_fix_topic)"
+        output="screen" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_scenario_name" value="scenario_3_gnss_outage" />
+    <arg name="trajectory_scenario_metadata" value="start_after_wp=$(arg start_after_waypoint_index);outage_distance_m=$(arg outage_distance_m)" />
+  </include>
+</launch>

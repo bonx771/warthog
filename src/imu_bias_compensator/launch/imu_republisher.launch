@@ -1,0 +1,30 @@
+<!-- imu_republisher.launch
+     Publish /imu/data_raw_bias với bias đã hiệu chỉnh từ file tính sẵn.
+     Khi đứng yên: angular_velocity = [0, 0, 0].
+
+     Usage:
+       roslaunch imu_bias_compensator imu_republisher.launch
+-->
+<launch>
+  <node pkg="imu_bias_compensator"
+        type="imu_republisher.py"
+        name="imu_republisher"
+        output="screen">
+
+    <!-- File bias tính trước (chỉnh giá trị trong file này) -->
+    <param name="bias_file"
+           value="$(find imu_bias_compensator)/config/gyro_bias.yaml"/>
+
+    <!-- Topics -->
+    <param name="imu_topic"   value="/imu/data_raw"/>
+    <param name="odom_topic"  value="/warthog_velocity_controller/odom"/>
+    <param name="use_odom"    value="true"/>
+
+    <!-- Static detection -->
+    <param name="accel_var_thresh" value="0.02"/>
+    <param name="gyro_var_thresh"  value="0.001"/>
+    <param name="odom_vel_thresh"  value="0.02"/>
+    <param name="window_size"      value="50"/>
+    <param name="static_confirm"   value="20"/>
+  </node>
+</launch>

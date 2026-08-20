@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <arg name="coordinates_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="goal_frame" default="map" />
+  <arg name="waypoint_marker_frame" default="$(arg goal_frame)" />
+  <arg name="waypoint_marker_topic" default="/outdoor_waypoint_nav/collected_waypoints" />
+  <arg name="waypoint_marker_scale" default="0.7" />
+  <arg name="waypoint_marker_activation_radius" default="0.675" />
+  <arg name="max_waypoint_goal_yaw_delta" default="0.35" />
+  <arg name="waypoint_heading_preview_radius" default="0.7" />
+  <arg name="oscillation_recovery_enabled" default="false" />
+  <arg name="oscillation_recovery_max_attempts" default="2" />
+  <arg name="oscillation_recovery_reverse_distance" default="0.0" />
+  <arg name="oscillation_recovery_turn_angle_deg" default="90.0" />
+  <arg name="oscillation_recovery_forward_distance" default="1.5" />
+  <arg name="oscillation_recovery_linear_speed" default="0.50" />
+  <arg name="oscillation_recovery_angular_speed" default="0.55" />
+  <arg name="safety_replan_enabled" default="true" />
+  <arg name="safety_replan_topic" default="/outdoor_waypoint_nav/replan_requested" />
+  <arg name="safety_replan_cooldown" default="0.0" />
+  <arg name="auto_replan_current_goal_enabled" default="true" />
+  <arg name="auto_replan_current_goal_interval" default="1.5" />
+  <arg name="preferred_avoidance_turn_topic" default="/outdoor_waypoint_nav/preferred_avoidance_turn_direction" />
+  <arg name="preferred_avoidance_turn_deadband_deg" default="8.0" />
+  <arg name="preferred_avoidance_turn_sign" default="1.0" />
+
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav" type="gps_waypoint" name="test_gps_waypoint" output="screen" />
+  <param name="/outdoor_waypoint_nav/coordinates_file" value="$(arg coordinates_file)" type="string" />
+  <param name="/outdoor_waypoint_nav/goal_frame" value="$(arg goal_frame)" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_frame" value="$(arg waypoint_marker_frame)" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_topic" value="$(arg waypoint_marker_topic)" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_scale" value="$(arg waypoint_marker_scale)" type="double" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_activation_radius" value="$(arg waypoint_marker_activation_radius)" type="double" />
+  <param name="/outdoor_waypoint_nav/max_waypoint_goal_yaw_delta" value="$(arg max_waypoint_goal_yaw_delta)" type="double" />
+  <param name="/outdoor_waypoint_nav/waypoint_heading_preview_radius" value="$(arg waypoint_heading_preview_radius)" type="double" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_enabled" value="$(arg oscillation_recovery_enabled)" type="bool" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_max_attempts" value="$(arg oscillation_recovery_max_attempts)" type="int" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_reverse_distance" value="$(arg oscillation_recovery_reverse_distance)" type="double" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_turn_angle_deg" value="$(arg oscillation_recovery_turn_angle_deg)" type="double" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_forward_distance" value="$(arg oscillation_recovery_forward_distance)" type="double" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_linear_speed" value="$(arg oscillation_recovery_linear_speed)" type="double" />
+  <param name="/outdoor_waypoint_nav/oscillation_recovery_angular_speed" value="$(arg oscillation_recovery_angular_speed)" type="double" />
+  <param name="/outdoor_waypoint_nav/safety_replan_enabled" value="$(arg safety_replan_enabled)" type="bool" />
+  <param name="/outdoor_waypoint_nav/safety_replan_topic" value="$(arg safety_replan_topic)" type="string" />
+  <param name="/outdoor_waypoint_nav/safety_replan_cooldown" value="$(arg safety_replan_cooldown)" type="double" />
+  <param name="/outdoor_waypoint_nav/auto_replan_current_goal_enabled" value="$(arg auto_replan_current_goal_enabled)" type="bool" />
+  <param name="/outdoor_waypoint_nav/auto_replan_current_goal_interval" value="$(arg auto_replan_current_goal_interval)" type="double" />
+  <param name="/outdoor_waypoint_nav/preferred_avoidance_turn_topic" value="$(arg preferred_avoidance_turn_topic)" type="string" />
+  <param name="/outdoor_waypoint_nav/preferred_avoidance_turn_deadband_deg" value="$(arg preferred_avoidance_turn_deadband_deg)" type="double" />
+  <param name="/outdoor_waypoint_nav/preferred_avoidance_turn_sign" value="$(arg preferred_avoidance_turn_sign)" type="double" />
+
+</launch>

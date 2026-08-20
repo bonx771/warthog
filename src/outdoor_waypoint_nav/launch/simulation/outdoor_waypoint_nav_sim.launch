@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+
+<launch>
+
+  <!-- K1 to K4 all use the same obstacle-free 1 km field by default. -->
+  <arg name="world_name" default="$(find outdoor_waypoint_nav)/worlds/scenario_4_open.world" />
+  <!-- Run Gazebo physics/sensors in the background; show only RViz. -->
+  <arg name="gazebo_gui" default="false" />
+  <arg name="gazebo_headless" default="true" />
+  <arg name="launch_rviz" default="true" />
+  <arg name="record_gps_waypoints" default="true" />
+  <arg name="gps_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+
+  <!-- Run gazebo to simulate robot -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/gazebo.launch">
+      <arg name="world_name" value="$(arg world_name)" />
+      <arg name="gui" value="$(arg gazebo_gui)" />
+      <arg name="headless" value="$(arg gazebo_headless)" />
+    </include>
+
+
+
+  <!-- Launch robot_localization and navsat node -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/localization_run_sim.launch">
+      <arg name="gps_fix_topic" value="$(arg gps_fix_topic)" />
+    </include>
+  <!-- Record GPS trajectory to waypoint file -->
+    <include if="$(arg record_gps_waypoints)"
+             file="$(find outdoor_waypoint_nav)/launch/include/record_gps_waypoints.launch"/>
+  <!-- Run rviz -->
+    <node if="$(arg launch_rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find outdoor_waypoint_nav)/rviz_config/model.rviz" />
+
+  <!-- Run move_base with a global map frame and local odom frame for GPS waypoint following in simulation -->
+    <include file="$(find warthog_slam)/launch/move_base_gps_sim.launch" />
+
+  <!-- Filter move_base commands through safety_node before they reach /cmd_vel. -->
+  <include file="$(find outdoor_waypoint_nav)/launch/include/safety_node.launch">
+    <arg name="use_lidar" value="true" />
+  </include>
+
+</launch>

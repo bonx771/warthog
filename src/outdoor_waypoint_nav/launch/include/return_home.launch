@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav" type="return_home.py" name="return_home" output="screen" />
+
+  <param name="/outdoor_waypoint_nav/coordinates_file" value="/waypoint_files/record.txt" type="string" />
+  <param name="/outdoor_waypoint_nav/goal_frame" value="map" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_frame" value="map" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_topic" value="/outdoor_waypoint_nav/return_home_waypoints" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_scale" value="0.7" type="double" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_activation_radius" value="0.675" type="double" />
+  <param name="/outdoor_waypoint_nav/waypoint_advance_radius" value="1.0" type="double" />
+  <param name="/outdoor_waypoint_nav/max_waypoint_goal_yaw_delta" value="0.35" type="double" />
+  <param name="/outdoor_waypoint_nav/auto_replan_current_goal_enabled" value="true" type="bool" />
+  <param name="/outdoor_waypoint_nav/auto_replan_current_goal_interval" value="0.5" type="double" />
+  <param name="/outdoor_waypoint_nav/safety_replan_topic" value="/outdoor_waypoint_nav/replan_requested" type="string" />
+
+</launch>

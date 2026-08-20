@@ -1,0 +1,20 @@
+<launch>
+  <node pkg="imu_filter_madgwick"
+        type="imu_filter_node"
+        name="imu_filter_nomag"
+        output="screen">
+
+    <remap from="imu/data_raw" to="/imu/data_raw_bias"/>
+    <remap from="imu/data" to="/imu/data_filter_madgwick"/>
+
+    <param name="use_mag" value="true"/>
+    <param name="publish_tf" value="false"/>
+    <param name="world_frame" value="enu"/>
+
+    <!-- Start conservative when yaw is not corrected by magnetometer. -->
+    <param name="gain" value="0.02"/>
+    <param name="zeta" value="0.0"/>
+    <param name="orientation_stddev" value="0.2"/>
+  </node>
+
+</launch>

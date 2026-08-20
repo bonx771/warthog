@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>imu_bias_compensator</name>
+  <version>1.0.0</version>
+  <description>
+    IMU gyroscope bias calibration and online ZUPT-based compensation
+    for Clearpath Warthog UGV. Supports static calibration, online bias
+    update during zero-velocity periods, and angular velocity zeroing when static.
+  </description>
+
+  <maintainer email="your@email.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>rospy</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+</package>

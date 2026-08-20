@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Dedicated K4 simulation sender. It intentionally uses the same
+       direct-pursuit settings as the real K4 sender; Gazebo receives /cmd_vel
+       through its existing simulation control chain. -->
+  <arg name="coordinates_file" default="/waypoint_files/points_scenario_4_sim.txt" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch">
+    <arg name="coordinates_file" value="$(arg coordinates_file)" />
+  </include>
+</launch>

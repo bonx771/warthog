@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Luồng mới:
+      roslaunch outdoor_waypoint_nav outdoor_waypoint_nav.launch
+      roslaunch outdoor_waypoint_nav tracking_control.launch
+  -->
+
+  <arg name="side_length" default="3.0"/>
+  <arg name="linear_vel" default="0.5"/>
+  <arg name="angular_vel" default="0.25"/>
+  <arg name="output_dir" default="$(find outdoor_waypoint_nav)/results"/>
+
+  <arg name="startup_pause" default="3.0"/>
+  <arg name="min_linear_vel" default="0.10"/>
+  <arg name="max_drive_angular_vel" default="0.3"/>
+  <arg name="turn_tolerance_deg" default="1.0"/>
+  <arg name="side_tolerance" default="0.03"/>
+  <arg name="lookahead_distance" default="0.6"/>
+  <arg name="min_lookahead" default="0.30"/>
+  <arg name="slow_down_distance" default="0.7"/>
+  <arg name="drive_heading_kp" default="1.6"/>
+  <arg name="turn_kp" default="1.2"/>
+  <arg name="min_turn_vel" default="0.07"/>
+  <arg name="yaw_response_sign" default="1.0"/>
+
+  <node name="tracking_control"
+        pkg="outdoor_waypoint_nav"
+        type="tracking_control.py"
+        output="screen">
+    <rosparam command="load" file="$(find outdoor_waypoint_nav)/params/outdoor_params.yaml"/>
+    <param name="side_length" value="$(arg side_length)"/>
+    <param name="linear_vel" value="$(arg linear_vel)"/>
+    <param name="angular_vel" value="$(arg angular_vel)"/>
+    <param name="output_dir" value="$(arg output_dir)"/>
+    <param name="startup_pause" value="$(arg startup_pause)"/>
+    <param name="min_linear_vel" value="$(arg min_linear_vel)"/>
+    <param name="max_drive_angular_vel" value="$(arg max_drive_angular_vel)"/>
+    <param name="turn_tolerance_deg" value="$(arg turn_tolerance_deg)"/>
+    <param name="side_tolerance" value="$(arg side_tolerance)"/>
+    <param name="lookahead_distance" value="$(arg lookahead_distance)"/>
+    <param name="min_lookahead" value="$(arg min_lookahead)"/>
+    <param name="slow_down_distance" value="$(arg slow_down_distance)"/>
+    <param name="drive_heading_kp" value="$(arg drive_heading_kp)"/>
+    <param name="turn_kp" value="$(arg turn_kp)"/>
+    <param name="min_turn_vel" value="$(arg min_turn_vel)"/>
+    <param name="yaw_response_sign" value="$(arg yaw_response_sign)"/>
+  </node>
+</launch>

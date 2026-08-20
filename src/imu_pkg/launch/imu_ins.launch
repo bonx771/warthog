@@ -1,0 +1,15 @@
+<launch>
+  <arg name="config_file" default="$(find imu_pkg)/config/imu_ins_template.yaml" />
+
+  <node pkg="imu_pkg"
+        type="imu_node.py"
+        name="imu_node"
+        output="screen">
+    <rosparam command="load" file="$(arg config_file)" />
+  </node>
+
+  <node pkg="tf2_ros"
+        type="static_transform_publisher"
+        name="base_link_to_imu"
+        args="0.5 0 0.2 0 0 0 base_link imu_link" />
+</launch>
