@@ -28,8 +28,8 @@ odom0_relative: false
 
 # GPS anchors the global x/y position in map.
 
-# GPS x/y after stationary gating. Raw navsat output is still available at
-# /outdoor_waypoint_nav/odometry/gps for debugging.
+# GPS x/y after stationary gating and motion-aided Kalman filtering. Raw navsat
+# output remains available at /outdoor_waypoint_nav/odometry/gps for debugging.
 odom1: /outdoor_waypoint_nav/odometry/gps_filter
 odom1_config: [true,  true,  false,
                 false, false, false,  

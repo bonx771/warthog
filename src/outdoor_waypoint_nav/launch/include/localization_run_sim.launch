@@ -34,6 +34,36 @@
       <remap from="gps/fix" to="/outdoor_waypoint_nav/gps/fix_with_covariance"/>
       <remap from="imu/data" to="/imu/data"/>
     </node>
+
+    <node pkg="outdoor_waypoint_nav" type="gps_kalman_filter.py" name="gps_kalman_filter" output="screen">
+      <param name="input_topic" value="odometry/gps" />
+      <param name="output_topic" value="odometry/gps_filter" />
+      <param name="motion_odom_topic" value="odometry/filtered" />
+      <param name="process_acceleration_noise_mps2" value="2.0" />
+      <param name="measurement_covariance_floor_m2" value="0.01" />
+      <param name="output_covariance_floor_m2" value="0.01" />
+      <param name="output_min_measurement_covariance_ratio" value="2.0" />
+      <param name="publish_rate_limit_hz" value="20.0" />
+      <param name="innovation_covariance_scale" value="0.25" />
+      <param name="outlier_mahalanobis_threshold" value="6.0" />
+      <param name="reset_timeout_sec" value="5.0" />
+      <param name="motion_odom_timeout_sec" value="0.5" />
+      <param name="hold_linear_speed_threshold_mps" value="0.12" />
+      <param name="hold_measurement_covariance_multiplier" value="20.0" />
+      <param name="hold_skip_measurement_update" value="true" />
+      <param name="hold_velocity_decay" value="0.0" />
+      <param name="motion_aided_smoothing" value="true" />
+      <param name="gps_correction_time_constant_sec" value="10.0" />
+      <param name="gps_correction_max_speed_mps" value="0.08" />
+      <param name="gps_correction_fast_time_constant_sec" value="5.0" />
+      <param name="gps_correction_fast_max_speed_mps" value="0.14" />
+      <param name="gps_correction_fast_motion_speed_mps" value="0.35" />
+      <param name="gps_correction_deadband_m" value="0.05" />
+      <param name="gps_correction_residual_clip_m" value="3.0" />
+      <param name="motion_prediction_position_noise_m2_per_m" value="0.02" />
+      <param name="motion_prediction_position_noise_m2_per_s" value="0.005" />
+      <param name="motion_delta_max_speed_mps" value="5.0" />
+    </node>
   </group>
 
 </launch>

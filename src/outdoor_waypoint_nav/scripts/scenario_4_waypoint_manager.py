@@ -10,10 +10,9 @@ UTM frame; no manual collection of WP2..WP5 is needed.
 Keyboard / joystick state machine:
 
     l -> wait for WP1
-    y -> sample stationary WP1 and heading
-    c -> calculate and preview the five-waypoint route
-    k -> validate and lock the route
+    y -> sample stationary WP1 and heading, then generate/validate/lock route
     r -> start gps_waypoint with the locked route
+    h -> return to WP1 of the locked route
 
 The standard joy_launch_control.py is deliberately not used here because its
 LB/RB handlers start the legacy collector/sender and would overwrite the
@@ -46,10 +45,11 @@ STATE_IDLE = "IDLE"
 STATE_ARMED = "WAITING_FOR_WP1"
 STATE_SAMPLING = "SAMPLING_WP1"
 STATE_CAPTURED = "WP1_CAPTURED"
-STATE_GENERATED = "ROUTE_GENERATED"
 STATE_CONFIRMED = "ROUTE_READY"
 STATE_STARTING = "STARTING"
 STATE_RUNNING = "RUNNING"
+STATE_RETURNING_HOME = "RETURNING_HOME"
+STATE_HOME = "HOME_REACHED"
 STATE_FINISHED = "FINISHED"
 STATE_ABORTED = "ABORTED"
 
@@ -174,12 +174,15 @@ class Scenario4WaypointManager:
         self.heading_calibration_launch_path = os.path.join(
             self.package_dir, "launch", "include", "heading_calibration.launch"
         )
+        home_launch_value = rospy.get_param(
+            "~home_launch_file", "/launch/include/home_to_initial_waypoint.launch"
+        )
+        self.home_launch_path = self._resolve_package_launch_file(home_launch_value)
 
         self.button_numbers = {
             "l": int(rospy.get_param("~l_button_num", 4)),
             "y": int(rospy.get_param("~y_button_num", 3)),
-            "c": int(rospy.get_param("~c_button_num", 2)),
-            "k": int(rospy.get_param("~k_button_num", 6)),
+            "h": int(rospy.get_param("~h_button_num", 0)),
             "r": int(rospy.get_param("~r_button_num", 5)),
             "b": int(rospy.get_param("~b_button_num", 1)),
         }
@@ -197,8 +200,10 @@ class Scenario4WaypointManager:
         self.anchor = None
         self.route_points = []
         self.sender_process = None
+        self.home_process = None
         self.calibration_process = None
         self.sender_output_thread = None
+        self.home_output_thread = None
         self.calibration_output_thread = None
         self.last_reached_index = 0
         self.finish_pending = False
@@ -278,7 +283,7 @@ class Scenario4WaypointManager:
 
     def _print_help(self):
         rospy.loginfo(
-            "[scenario4] Key sequence: l -> y -> c -> k -> r | "
+            "[scenario4] Key sequence: l -> y -> r | h returns to WP1 | "
             "b aborts a run."
         )
         rospy.loginfo(
@@ -329,13 +334,16 @@ class Scenario4WaypointManager:
             self._handle_command(command)
         else:
             rospy.logwarn(
-                "[scenario4] Unknown command '%s'. Use l, y, c, k, r, or b.",
+                "[scenario4] Unknown command '%s'. Use l, y, r, h, or b.",
                 command,
             )
 
     def _handle_command(self, command):
         if command == "b":
             self._abort_route()
+            return
+        if command == "h":
+            self._start_home_return()
             return
         if self._calibration_is_running():
             rospy.logwarn(
@@ -346,10 +354,6 @@ class Scenario4WaypointManager:
             self._arm_for_wp1()
         elif command == "y":
             self._start_wp1_sampling()
-        elif command == "c":
-            self._generate_route()
-        elif command == "k":
-            self._confirm_route()
         elif command == "r":
             self._start_route()
 
@@ -365,6 +369,8 @@ class Scenario4WaypointManager:
     def _timer_cb(self, _event):
         if self.state == STATE_RUNNING:
             self._check_sender_exit()
+        if self.state == STATE_RETURNING_HOME:
+            self._check_home_exit()
         if self.state != STATE_SAMPLING:
             return
 
@@ -394,6 +400,24 @@ class Scenario4WaypointManager:
             "Sender dừng mà không có tín hiệu hoàn tất. Run không hợp lệ; "
             "xem log rồi khởi động lại Terminal 2.",
         )
+
+    def _check_home_exit(self):
+        if self.home_process is None or self.home_process.poll() is None:
+            return
+
+        return_code = self.home_process.poll()
+        self.home_process = None
+        self._publish_route_ready(True)
+        if return_code == 0:
+            self._set_state(
+                STATE_HOME,
+                "Đã về waypoint ban đầu WP1. Run hiện tại kết thúc; khởi động lại Terminal 2 trước lần đo tiếp theo.",
+            )
+        else:
+            self._set_state(
+                STATE_ABORTED,
+                "Lệnh home dừng lỗi. Đã gửi vận tốc 0; kiểm tra log trước khi chạy lại.",
+            )
 
     def _lookup_utm_yaw(self):
         try:
@@ -449,7 +473,7 @@ class Scenario4WaypointManager:
         if self.state in (STATE_STARTING, STATE_RUNNING):
             rospy.logwarn("[scenario4] Không thể tạo route mới khi xe đang khởi/chạy.")
             return
-        if self.state in (STATE_FINISHED, STATE_ABORTED):
+        if self.state in (STATE_FINISHED, STATE_HOME, STATE_ABORTED):
             rospy.logwarn(
                 "[scenario4] Route này đã có kết quả. Khởi động lại Terminal 2 "
                 "trước khi tạo một route WP1 mới."
@@ -567,10 +591,11 @@ class Scenario4WaypointManager:
         }
         self._set_state(
             STATE_CAPTURED,
-            "Đã nhận WP1: lat={:.9f}, lon={:.9f}, bearing={:.2f} deg. Nhấn c để tính route.".format(
+            "Đã nhận WP1: lat={:.9f}, lon={:.9f}, bearing={:.2f} deg. Đang tính và khóa route.".format(
                 latitude, longitude, self.anchor["bearing_true_deg"]
             ),
         )
+        self._generate_and_lock_route()
 
     def _latlon_to_utm(self, latitude, longitude):
         zone = max(1, min(60, int((longitude + 180.0) / 6.0) + 1))
@@ -587,13 +612,13 @@ class Scenario4WaypointManager:
             "EPSG:{}".format(epsg), "EPSG:4326", always_xy=True
         )
 
-    def _generate_route(self):
+    def _generate_and_lock_route(self):
         if self.state != STATE_CAPTURED or self.anchor is None:
-            rospy.logwarn(
-                "[scenario4] c chỉ hợp lệ sau khi y đã nhận WP1 và hướng. Trạng thái: %s",
+            rospy.logerr(
+                "[scenario4] Không thể sinh route trước khi y nhận WP1 và heading. Trạng thái: %s",
                 self.state,
             )
-            return
+            return False
 
         unit_length = self.route_length_m / 5.0
         theta = math.radians(self.theta_deg)
@@ -650,24 +675,25 @@ class Scenario4WaypointManager:
         valid, detail, segment_lengths = self._validate_route(points, unit_length)
         if not valid:
             rospy.logerr("[scenario4] Không thể dùng route vừa tính: %s", detail)
-            return
+            self._set_state(
+                STATE_ARMED,
+                "Route chưa hợp lệ sau khi lấy WP1. Kiểm tra cấu hình rồi nhấn y lại.",
+            )
+            return False
 
         try:
             self._write_route_files(points, unit_length, segment_lengths)
         except OSError as exc:
             rospy.logerr("[scenario4] Không ghi được file waypoint: %s", exc)
-            return
+            self._set_state(
+                STATE_ARMED,
+                "Không ghi được file route. Kiểm tra đường dẫn/quyền ghi rồi nhấn y lại.",
+            )
+            return False
 
         self.route_points = points
         rospy.set_param("/outdoor_waypoint_nav/coordinates_file", self.route_file_param)
-        self._publish_route_ready(False)
         self._publish_markers(points)
-        self._set_state(
-            STATE_GENERATED,
-            "Đã tính 5 waypoint, tổng {:.3f} m. Xem marker/file rồi nhấn k để khóa route.".format(
-                sum(segment_lengths)
-            ),
-        )
         for point in points:
             rospy.loginfo(
                 "[scenario4] WP%d lat=%.10f lon=%.10f | forward=%.3f m right=%.3f m",
@@ -677,6 +703,15 @@ class Scenario4WaypointManager:
                 point["forward_m"],
                 point["right_m"],
             )
+        self._publish_route_ready(True)
+        self._set_state(
+            STATE_CONFIRMED,
+            "Đã lấy WP1, sinh và khóa đủ 5 waypoint. Các đoạn {} m; tổng {:.3f} m. Nhấn r để chạy.".format(
+                ", ".join("{:.3f}".format(value) for value in segment_lengths),
+                sum(segment_lengths),
+            ),
+        )
+        return True
 
     def _validate_route(self, points, unit_length):
         if len(points) != 5:
@@ -843,34 +878,6 @@ class Scenario4WaypointManager:
         markers.markers.append(marker)
         self.marker_pub.publish(markers)
 
-    def _confirm_route(self):
-        if self.state != STATE_GENERATED:
-            rospy.logwarn(
-                "[scenario4] k chỉ hợp lệ sau c. Trạng thái hiện tại: %s", self.state
-            )
-            return
-        valid, detail, segment_lengths = self._validate_route(
-            self.route_points, self.route_length_m / 5.0
-        )
-        if not valid:
-            rospy.logerr("[scenario4] Route chưa thể khóa: %s", detail)
-            return
-        if not os.path.isfile(self.route_file_path):
-            rospy.logerr(
-                "[scenario4] Không tìm thấy %s. Hãy nhấn c để tạo lại route.",
-                self.route_file_path,
-            )
-            return
-        rospy.set_param("/outdoor_waypoint_nav/coordinates_file", self.route_file_param)
-        self._publish_route_ready(True)
-        self._set_state(
-            STATE_CONFIRMED,
-            "Đã đủ 5 waypoint. Các đoạn {} m; tổng {:.3f} m. Nhấn r để chạy.".format(
-                ", ".join("{:.3f}".format(value) for value in segment_lengths),
-                sum(segment_lengths),
-            ),
-        )
-
     def _has_move_base_server(self):
         published_topics = dict(rospy.get_published_topics())
         required = ("/move_base/status", "/move_base/goal", "/move_base/result")
@@ -883,7 +890,7 @@ class Scenario4WaypointManager:
     def _start_route(self):
         if self.state != STATE_CONFIRMED or not self.route_ready:
             rospy.logwarn(
-                "[scenario4] r chỉ hợp lệ sau k khi route đã sẵn sàng. Trạng thái: %s",
+                "[scenario4] r chỉ hợp lệ sau y khi route đã sẵn sàng. Trạng thái: %s",
                 self.state,
             )
             return
@@ -962,6 +969,63 @@ class Scenario4WaypointManager:
         self._publish_run_started(True)
         rospy.sleep(0.1)
 
+    def _start_home_return(self):
+        if not self.route_points or not os.path.isfile(self.route_file_path):
+            rospy.logwarn(
+                "[scenario4] Chưa có route K4 đã khóa để về WP1. Nhấn l rồi y trước."
+            )
+            return
+        if self._process_is_running(self.home_process):
+            rospy.logwarn("[scenario4] Home return đang chạy.")
+            return
+        if not os.path.isfile(self.home_launch_path):
+            rospy.logerr("[scenario4] Không tìm thấy home launch: %s", self.home_launch_path)
+            return
+
+        self._publish_zero_velocity()
+        if self._process_is_running(self.sender_process):
+            self._terminate_process(self.sender_process, "gps_waypoint")
+            self.sender_process = None
+        if self._process_is_running(self.calibration_process):
+            self._terminate_process(self.calibration_process, "heading calibration")
+            self.calibration_process = None
+
+        rospy.set_param("/outdoor_waypoint_nav/coordinates_file", self.route_file_param)
+        command = [
+            "roslaunch",
+            self.home_launch_path,
+            "coordinates_file:={}".format(self.route_file_param),
+        ]
+        try:
+            self.home_process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                preexec_fn=os.setsid,
+            )
+        except OSError as exc:
+            rospy.logerr("[scenario4] Không khởi được home return: %s", exc)
+            self.home_process = None
+            self._publish_route_ready(True)
+            return
+
+        self.home_output_thread = threading.Thread(
+            target=self._relay_process_output,
+            args=(self.home_process, "scenario4 home"),
+            daemon=True,
+        )
+        self.home_output_thread.start()
+        self._publish_route_ready(True)
+        self._publish_run_started(False)
+        self._set_state(
+            STATE_RETURNING_HOME,
+            "Đang dừng route hiện tại và đưa UGV về WP1 từ {}.".format(
+                self.route_file_param
+            ),
+        )
+
     def _reached_waypoint_cb(self, message):
         if self.state != STATE_RUNNING:
             return
@@ -1000,6 +1064,7 @@ class Scenario4WaypointManager:
     def _abort_route(self):
         self._publish_zero_velocity()
         sender_was_running = self._process_is_running(self.sender_process)
+        home_was_running = self._process_is_running(self.home_process)
         calibration_was_running = self._process_is_running(self.calibration_process)
         if self.state == STATE_STARTING and not sender_was_running:
             self.start_cancel_requested = True
@@ -1012,6 +1077,9 @@ class Scenario4WaypointManager:
         if self._process_is_running(self.sender_process):
             self._terminate_process(self.sender_process, "gps_waypoint")
             self.sender_process = None
+        if self._process_is_running(self.home_process):
+            self._terminate_process(self.home_process, "home return")
+            self.home_process = None
         if self._process_is_running(self.calibration_process):
             self._terminate_process(self.calibration_process, "heading calibration")
             self.calibration_process = None
@@ -1020,6 +1088,12 @@ class Scenario4WaypointManager:
             self._set_state(
                 STATE_ABORTED if self.route_points else STATE_IDLE,
                 "Đã dừng khẩn cấp. Dừng rồi khởi động lại Terminal 2 trước run tiếp theo.",
+            )
+        elif home_was_running:
+            self._publish_route_ready(bool(self.route_points))
+            self._set_state(
+                STATE_ABORTED,
+                "Đã dừng khẩn cấp khi đang về WP1. Đã gửi vận tốc 0; kiểm tra xe trước khi chạy lại.",
             )
         elif calibration_was_running:
             self._set_state(
@@ -1105,6 +1179,9 @@ class Scenario4WaypointManager:
         if self._process_is_running(self.sender_process):
             self._publish_zero_velocity()
             self._terminate_process(self.sender_process, "gps_waypoint")
+        if self._process_is_running(self.home_process):
+            self._publish_zero_velocity()
+            self._terminate_process(self.home_process, "home return")
         if self._process_is_running(self.calibration_process):
             self._terminate_process(self.calibration_process, "heading calibration")
 

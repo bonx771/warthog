@@ -13,10 +13,9 @@
   <param name="/outdoor_waypoint_nav/waypoint_marker_frame" value="map" type="string" />
   <param name="/outdoor_waypoint_nav/waypoint_marker_topic" value="/outdoor_waypoint_nav/collected_waypoints" type="string" />
   <param name="/outdoor_waypoint_nav/waypoint_marker_scale" value="0.7" type="double" />
-  <!-- Disable radius-based early advance. In direct-pursuit mode the C++
-       controller enforces a hard minimum goal tolerance of 0.05 m; setting
-       the direct tolerance itself to zero would incorrectly fall back to
-       1.0 m, so 0.05 m is the closest possible setting without code changes. -->
+  <!-- Direct-pursuit waypoint following. GNSS/EKF position is not reliable at
+       centimetre scale in noisy scenarios, so use a practical arrival radius and
+       hold the inbound heading near the goal instead of chasing noisy bearing. -->
   <param name="/outdoor_waypoint_nav/waypoint_marker_activation_radius" value="0.0" type="double" />
   <param name="/outdoor_waypoint_nav/waypoint_advance_radius" value="0.0" type="double" />
   <param name="/outdoor_waypoint_nav/max_waypoint_goal_yaw_delta" value="0.35" type="double" />
@@ -43,8 +42,8 @@
   <param name="/outdoor_waypoint_nav/return_to_start_enabled" value="false" type="bool" />
   <param name="/outdoor_waypoint_nav/return_heading_pid_enabled" value="false" type="bool" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled" value="true" type="bool" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_goal_tolerance" value="0.05" type="double" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance" value="0.05" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_goal_tolerance" value="0.10" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance" value="0.10" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_cruise_speed" value="0.54" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_min_speed" value="0.144" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_slow_radius" value="2.0" type="double" />
@@ -55,5 +54,8 @@
   <param name="/outdoor_waypoint_nav/direct_waypoint_progress_timeout" value="20.0" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_progress_epsilon" value="0.05" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_control_frequency" value="20.0" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_near_goal_heading_radius" value="0.60" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_near_goal_max_speed" value="0.14" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_near_goal_max_angular_speed" value="0.15" type="double" />
 
 </launch>

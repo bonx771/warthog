@@ -59,6 +59,15 @@ publisher duy nhất của topic này: GPS sạch cho Kịch bản 1, GPS nhiễ
 bản 2, hoặc GPS bị cắt/khôi phục cho Kịch bản 3. Khởi động Terminal 1 trước,
 sau đó khởi động Terminal 2 và đợi GNSS/EKF ổn định rồi mới bấm RB/`r`.
 
+Trong cả K1-K4, bấm `h` (Home) trên bàn phím để dừng waypoint process đang
+chạy, hủy goal `move_base` còn treo và lái UGV trực tiếp về waypoint ban đầu
+của route đang active. Với K1-K3, waypoint ban đầu là dòng đầu của file
+`coordinates_file`; với K4, lệnh này chỉ hợp lệ sau khi `y` đã sinh và khóa
+route. Xem `h` như kết thúc/huỷ run hiện tại: sau khi xe về WP1, kiểm tra vùng
+an toàn rồi dừng và khởi động lại Terminal 2 trước lần đo tiếp theo. Report
+`position_error.png` của lần home sẽ tính sai số khoảng cách tới WP1; run hoàn
+thành bằng `r` như bình thường vẫn tính sai số tới waypoint cuối.
+
 Sau mỗi lần chạy K1–K3, dừng rồi khởi động lại launch ở Terminal 2 trước lần
 tiếp theo; Terminal 1 có thể giữ nguyên. Cách này tạo report/CSV mới cho mỗi
 run, tạo chuỗi nhiễu mới ở Kịch bản 2 và re-arm node GNSS OFF ở Kịch bản 3.
@@ -414,18 +423,22 @@ sender của K1–K3, gây ghi đè file waypoint thường.
 3. 'y': giữ xe đứng yên trong 5 giây. Node lấy median '/gps/fix' làm WP1 và
    lấy heading từ TF 'utm -> base_link'. Nếu GPS/TF chưa ổn định, node từ chối
    mẫu và yêu cầu nhấn 'y' lại.
-4. 'c': tính WP2–WP5 trong UTM, đổi ngược về lat/lon, ghi file waypoint và
-   file metadata JSON, đồng thời publish preview lên:
+4. Sau 5 giây lấy mẫu, node tự tính WP2–WP5 trong UTM, đổi ngược về lat/lon,
+   ghi file waypoint và file metadata JSON, validate/khóa route, đồng thời
+   publish preview lên:
 
    ~~~text
    /outdoor_waypoint_nav/scenario_4/generated_waypoints
    ~~~
 
-5. 'k': kiểm tra đúng 5 waypoint, các đoạn 'a, a, 2a, a', tổng quãng đường
-   đặt trước, rồi khóa route và báo sẵn sàng.
-6. 'r': chỉ có hiệu lực sau 'k'; node mới khởi 'gps_waypoint' để xe chạy.
+5. 'r': chỉ có hiệu lực sau khi bước 'y' đã sinh và khóa route; node mới khởi
+   'gps_waypoint' để xe chạy.
+6. 'h': sau khi route đã khóa, dừng route hiện tại nếu đang chạy và đưa xe về
+   WP1 của chính route K4 đó. Nếu bấm trước 'y', node sẽ từ chối để tránh dùng
+   nhầm file route cũ.
 
-'b' gửi vận tốc 0 và hủy run đang chạy; nút dừng khẩn phần cứng vẫn là lựa
+'b' gửi vận tốc 0 và hủy run đang chạy; 'h' là lệnh home có điều khiển về WP1.
+Nút dừng khẩn phần cứng vẫn là lựa
 chọn ưu tiên. Nếu cần heading calibration, thực hiện nó như bước chuẩn bị
 riêng trước khi khởi Terminal 1/K4; không dùng phím calibration trong K4 vì
 nó có thể lái xe tiến/lùi.
@@ -442,7 +455,7 @@ trống; thêm ít nhất 5–10 m biên an toàn mỗi bên, đặc biệt ở 
 
 K4 vẫn ghi CSV và ảnh đánh giá như các kịch bản trước. Khác với K1–K3, manager
 phát event bắt đầu ngay sau khi khởi thành công 'gps_waypoint' ở phím 'r'; vì
-thế đoạn thao tác 'l/y/c/k' không lẫn vào kết quả, đồng thời không bị mất event
+thế đoạn thao tác 'l/y' không lẫn vào kết quả, đồng thời không bị mất event
 nếu WP1 được đạt quá nhanh. Khi hoàn thành, node chốt CSV/PNG rồi khóa run;
 dừng và khởi động lại Terminal 2 trước lần đo tiếp theo. Điều này tránh trộn
 dữ liệu lúc report của lần trước còn đang được ghi. Nếu bấm 'b', sender lỗi,

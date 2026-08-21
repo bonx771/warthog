@@ -94,7 +94,7 @@ ekf_se_map:
 
   # Global localization in simulation:
   # - wheel odometry keeps short-term motion smooth
-  # - odometry/gps anchors x/y globally in the map frame
+  # - odometry/gps_filter anchors x/y globally after GPS pre-filtering
   # - IMU stabilizes yaw and yaw rate
   odom0: /warthog_velocity_controller/odom
   odom0_config: [false, false, false,
@@ -107,7 +107,7 @@ ekf_se_map:
   odom0_differential: false
   odom0_relative: false
 
-  odom1: /outdoor_waypoint_nav/odometry/gps
+  odom1: /outdoor_waypoint_nav/odometry/gps_filter
   odom1_config: [true,  true,  false,
                  false, false, false,
                  false, false, false,

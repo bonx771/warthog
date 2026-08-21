@@ -8,7 +8,7 @@
 
     Then start this file. It supplies clean GNSS to Terminal 1, collects only
     WP1 plus robot direction interactively, calculates the other four points,
-    and starts gps_waypoint only after r.
+    locks the generated route automatically, and starts gps_waypoint only after r.
   -->
   <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
   <arg name="theta_deg" default="15.0" />
@@ -34,12 +34,12 @@
         output="screen" />
 
   <!-- Publish the intended route file early. The file itself is atomically
-       written by c before r starts gps_waypoint. -->
+       written by y before r starts gps_waypoint. -->
   <param name="/outdoor_waypoint_nav/coordinates_file"
          value="$(arg waypoint_file)"
          type="string" />
 
-  <!-- K4 owns l/y/c/k/r itself. Do not include joy_launch_control.launch:
+  <!-- K4 owns l/y/r/h itself. Do not include joy_launch_control.launch:
        its LB/RB callbacks start the legacy collector/sender. -->
   <node ns="/outdoor_waypoint_nav"
         pkg="outdoor_waypoint_nav"
@@ -52,7 +52,7 @@
     <param name="cmd_topic" value="" type="string" />
     <param name="button_count" value="8" type="int" />
     <param name="enable_motion_keys" value="false" type="bool" />
-    <rosparam param="enabled_button_keys">["l", "y", "c", "k", "r", "b"]</rosparam>
+    <rosparam param="enabled_button_keys">["l", "y", "r", "h", "b"]</rosparam>
   </node>
 
   <node ns="/outdoor_waypoint_nav"

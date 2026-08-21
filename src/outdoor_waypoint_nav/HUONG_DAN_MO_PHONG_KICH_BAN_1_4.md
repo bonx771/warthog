@@ -39,6 +39,14 @@ K2 giữ covariance tăng thêm của nhiễu khi vào EKF. K3 đo khoảng GNSS
 `/outdoor_waypoint_nav/odometry/filtered`, đúng với EKF odometry có trong mô
 phỏng.
 
+Trong cả K1-K4, bấm `h` (Home) trên bàn phím để dừng waypoint process đang
+chạy, hủy goal `move_base` còn treo và lái UGV về waypoint ban đầu của route
+đang active. Với K1-K3 đó là dòng đầu của `points_sim.txt` hoặc file
+`coordinates_file`; với K4 chỉ dùng được sau khi `y` đã sinh và khóa route.
+Sau khi home, coi run hiện tại đã kết thúc và khởi động lại Terminal 2 trước
+lần mô phỏng tiếp theo. Report `position_error.png` của lần home tính sai số
+tới WP1; run hoàn thành bằng `r` vẫn tính sai số tới waypoint cuối.
+
 ## Kịch bản 1 — GPS bình thường
 
 Terminal 1:
@@ -119,14 +127,17 @@ Trình tự phím giữ nguyên bản chạy thực:
 1. `l`: chuẩn bị lấy WP1.
 2. Đặt xe đứng yên tại WP1, hướng theo trục giữa, rồi nhấn `y`; node lấy mẫu
    GPS và heading trong 5 giây.
-3. `c`: sinh 5 waypoint theo góc 15/30/45 độ, lưu
-   `waypoint_files/points_scenario_4_sim.txt` và metadata JSON.
-4. `k`: kiểm tra, khóa đủ 5 waypoint.
-5. `r`: chạy direct-pursuit qua các waypoint đó.
+3. Hết 5 giây, node tự sinh 5 waypoint theo góc 15/30/45 độ, lưu
+   `waypoint_files/points_scenario_4_sim.txt` và metadata JSON, rồi validate và
+   khóa route.
+4. `r`: chạy direct-pursuit qua các waypoint đó.
+5. `h`: dừng route hiện tại nếu đang chạy và đưa UGV về WP1 của route K4 đã
+   khóa.
 
-`b` dừng khẩn. Sau một run K4, khởi động lại Terminal 2 trước run tiếp theo để
-PNG/CSV không bị lẫn dữ liệu. Có thể dùng `route_length_m:=...` nhỏ hơn chỉ để
-debug, nhưng kết quả K4 so sánh chính thức nên giữ `300.0` m.
+`b` dừng khẩn. Sau một run K4 hoặc sau khi dùng `h`, khởi động lại Terminal 2
+trước run tiếp theo để PNG/CSV không bị lẫn dữ liệu. Có thể dùng
+`route_length_m:=...` nhỏ hơn chỉ để debug, nhưng kết quả K4 so sánh chính thức
+nên giữ `300.0` m.
 
 ## Kết quả và cách chạy cũ
 

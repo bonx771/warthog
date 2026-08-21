@@ -30,7 +30,7 @@
          value="$(arg waypoint_file)"
          type="string" />
 
-  <!-- K4 owns l/y/c/k/r, so do not include joy_launch_control_sim.launch. -->
+  <!-- K4 owns l/y/r/h, so do not include joy_launch_control_sim.launch. -->
   <node ns="/outdoor_waypoint_nav"
         pkg="outdoor_waypoint_nav"
         type="keyboard_to_joy.py"
@@ -42,7 +42,7 @@
     <param name="cmd_topic" value="" type="string" />
     <param name="button_count" value="8" type="int" />
     <param name="enable_motion_keys" value="false" type="bool" />
-    <rosparam param="enabled_button_keys">["l", "y", "c", "k", "r", "b"]</rosparam>
+    <rosparam param="enabled_button_keys">["l", "y", "r", "h", "b"]</rosparam>
   </node>
 
   <node ns="/outdoor_waypoint_nav"

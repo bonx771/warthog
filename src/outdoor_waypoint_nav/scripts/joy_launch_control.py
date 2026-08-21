@@ -15,9 +15,9 @@ from std_msgs.msg import Bool
 
 # Initialize variables
 
-button_events = [False, False, False, False, False]
-main_prev_buttons = [0, 0, 0, 0, 0]
-keyboard_prev_buttons = [0, 0, 0, 0, 0]
+button_events = [False, False, False, False, False, False]
+main_prev_buttons = [0, 0, 0, 0, 0, 0]
+keyboard_prev_buttons = [0, 0, 0, 0, 0, 0]
 collect_btn_num = 0
 collect_btn_sym = ""
 send_btn_num = 0
@@ -26,6 +26,10 @@ calibrate_btn_num = 0
 calibrate_btn_sym = ""
 abort_btn_num = 0
 abort_btn_sym = ""
+continue_btn_num = 0
+continue_btn_sym = ""
+home_btn_num = 0
+home_btn_sym = ""
 sim_enabled = False
 keyboard_waypoint_control_enabled = False
 keyboard_joy_topic = "/outdoor_waypoint_nav/keyboard_joy"
@@ -34,6 +38,7 @@ location_collect = ""
 location_send = ""
 location_calibrate = ""
 location_safety_node = ""
+location_home = ""
 
 calibrate_complete = False
 collect_complete = False
@@ -57,6 +62,8 @@ def getParameter():
     global abort_btn_sym
     global continue_btn_num
     global continue_btn_sym
+    global home_btn_num
+    global home_btn_sym
     global sim_enabled
     global keyboard_waypoint_control_enabled
     global keyboard_joy_topic
@@ -71,6 +78,8 @@ def getParameter():
     abort_btn_sym = rospy.get_param("/outdoor_waypoint_nav/abort_button_sym")
     continue_btn_num = rospy.get_param("/outdoor_waypoint_nav/continue_button_num")
     continue_btn_sym = rospy.get_param("/outdoor_waypoint_nav/continue_button_sym")
+    home_btn_num = rospy.get_param("/outdoor_waypoint_nav/home_button_num", 0)
+    home_btn_sym = rospy.get_param("/outdoor_waypoint_nav/home_button_sym", "h")
     
     sim_enabled = rospy.get_param("/outdoor_waypoint_nav/sim_enabled")
     keyboard_waypoint_control_enabled = rospy.get_param("/outdoor_waypoint_nav/keyboard_waypoint_control_enabled", False)
@@ -81,23 +90,27 @@ def getPaths():
     global location_send
     global location_calibrate
     global location_safety_node
+    global location_home
     rospack = rospkg.RosPack()
+    package_path = rospack.get_path('outdoor_waypoint_nav')
     
     # Define location of launch files
     if sim_enabled == True:
-        location_collect = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/collect_goals_sim.launch"
-        location_send = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/send_goals_sim.launch"
-        location_calibrate = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/heading_calibration_sim.launch"
-        location_safety_node = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/safety_node.launch"
+        location_collect = package_path + "/launch/include/collect_goals_sim.launch"
+        location_send = package_path + "/launch/include/send_goals_sim.launch"
+        location_calibrate = package_path + "/launch/include/heading_calibration_sim.launch"
+        location_safety_node = package_path + "/launch/include/safety_node.launch"
 
     elif sim_enabled == False:
-        location_collect = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/collect_goals.launch"
-        location_send = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/send_goals.launch"
-        location_calibrate = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/heading_calibration.launch"
-        location_safety_node = rospack.get_path('outdoor_waypoint_nav') + "/launch/include/safety_node.launch"
+        location_collect = package_path + "/launch/include/collect_goals.launch"
+        location_send = package_path + "/launch/include/send_goals.launch"
+        location_calibrate = package_path + "/launch/include/heading_calibration.launch"
+        location_safety_node = package_path + "/launch/include/safety_node.launch"
 
     else:
         print("ERROR: PLEASE SPECIFY SIM_ENABLED PARAMETER.")
+
+    location_home = package_path + "/launch/include/home_to_initial_waypoint.launch"
 
     # Scenario launchers can select a controller launch with the same direct
     # pursuit settings as the outdoor experiments. The legacy simulation
@@ -127,6 +140,7 @@ def _make_joy_cb(previous_state):
             _button_value(joy_msg, calibrate_btn_num),
             _button_value(joy_msg, abort_btn_num),
             _button_value(joy_msg, continue_btn_num),
+            _button_value(joy_msg, home_btn_num),
         ]
 
         for idx, current_value in enumerate(current_buttons):
@@ -245,6 +259,18 @@ def start_launch_process(launch_file, label, launch_args=None):
     )
     launch_output_thread.start()
 
+def check_launch_process_exit():
+    global launch_process
+    global launch_label
+
+    if launch_process is None or launch_process.poll() is None:
+        return
+
+    return_code = launch_process.poll()
+    rospy.loginfo("%s exited with code %s.", launch_label or "launch process", return_code)
+    launch_process = None
+    launch_label = ""
+
 def get_coordinates_file_path():
     path_local = rospy.get_param("/outdoor_waypoint_nav/coordinates_file", None)
     if path_local:
@@ -279,10 +305,18 @@ def check_buttons():
     global velocity_paused
 
     current_events = button_events[:]
-    button_events = [False, False, False, False, False]
+    button_events = [False, False, False, False, False, False]
+    check_launch_process_exit()
     
     # Check abort button
     if current_events[3]:
+        if launch_label == "home_to_initial_waypoint.launch":
+            rospy.logerr("STOP BUTTON SELECTED during home return, stopping home process...")
+            shutdown_launch_process()
+            publish_zero_velocity()
+            velocity_paused = False
+            return
+
         rospy.logerr("STOP BUTTON SELECTED, blocking velocity commands...")
         publish_zero_velocity()
         os.system("rosnode kill safety_node")
@@ -299,6 +333,32 @@ def check_buttons():
         launch = roslaunch.parent.ROSLaunchParent(uuid,[location_safety_node])
         launch.start()
         velocity_paused = False
+
+    # Return to the first waypoint in the active route.
+    if current_events[5]:
+        waypoint_path = get_coordinates_file_path()
+        waypoint_token_count = count_waypoint_tokens(waypoint_path)
+        if waypoint_token_count < 2:
+            rospy.logerr("No initial waypoint available in %s. Cannot run home.", waypoint_path)
+            return
+
+        rospy.logwarn(
+            "HOME selected: stopping active waypoint process and returning to the initial waypoint."
+        )
+        publish_zero_velocity()
+        start_launch_process(
+            location_home,
+            "home_to_initial_waypoint.launch",
+            ["coordinates_file:={}".format(
+                rospy.get_param(
+                    "/outdoor_waypoint_nav/coordinates_file",
+                    "/waypoint_files/points_sim.txt"
+                    if sim_enabled
+                    else "/waypoint_files/points_outdoor.txt",
+                )
+            )],
+        )
+        return
 
     # Start collecting goals
     if current_events[0]:

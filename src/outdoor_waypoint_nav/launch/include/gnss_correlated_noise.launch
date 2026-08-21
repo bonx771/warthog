@@ -11,6 +11,8 @@
   <arg name="distance_odom_topic" default="/outdoor_waypoint_nav/odometry/filtered_odom" />
   <arg name="activation_mode" default="distance" />
   <arg name="reached_waypoint_topic" default="/outdoor_waypoint_nav/waypoint_reached_index" />
+  <arg name="finish_topic" default="/outdoor_waypoint_nav/waypoint_following_status" />
+  <arg name="home_finish_topic" default="/outdoor_waypoint_nav/home_navigation_status" />
   <arg name="noise_start_after_waypoint_index" default="2" />
   <arg name="noise_stop_at_waypoint_index" default="4" />
   <arg name="alpha" default="0.9" />
@@ -29,6 +31,8 @@
     <param name="distance_odom_topic" value="$(arg distance_odom_topic)" />
     <param name="activation_mode" value="$(arg activation_mode)" />
     <param name="reached_waypoint_topic" value="$(arg reached_waypoint_topic)" />
+    <param name="finish_topic" value="$(arg finish_topic)" />
+    <param name="home_finish_topic" value="$(arg home_finish_topic)" />
     <param name="noise_start_after_waypoint_index" value="$(arg noise_start_after_waypoint_index)" type="int" />
     <param name="noise_stop_at_waypoint_index" value="$(arg noise_stop_at_waypoint_index)" type="int" />
     <param name="alpha" value="$(arg alpha)" type="double" />

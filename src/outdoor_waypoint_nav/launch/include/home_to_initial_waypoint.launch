@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="coordinates_file" default="/waypoint_files/points_outdoor.txt" />
+
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg coordinates_file)"
+         type="string" />
+  <param name="/outdoor_waypoint_nav/goal_frame" value="map" type="string" />
+  <param name="/outdoor_waypoint_nav/home_cmd_topic" value="/cmd_vel" type="string" />
+  <param name="/outdoor_waypoint_nav/home_goal_tolerance" value="0.25" type="double" />
+  <param name="/outdoor_waypoint_nav/home_cruise_speed" value="0.45" type="double" />
+  <param name="/outdoor_waypoint_nav/home_min_speed" value="0.12" type="double" />
+  <param name="/outdoor_waypoint_nav/home_slow_radius" value="2.0" type="double" />
+  <param name="/outdoor_waypoint_nav/home_progress_timeout" value="30.0" type="double" />
+
+  <node ns="/outdoor_waypoint_nav"
+        pkg="outdoor_waypoint_nav"
+        type="home_to_initial_waypoint.py"
+        name="home_to_initial_waypoint"
+        output="screen" />
+</launch>

@@ -74,8 +74,8 @@ double return_heading_pid_integral_limit = 1.0;
 double return_heading_pid_settle_time = 0.4;
 double return_heading_pid_timeout = 12.0;
 bool direct_waypoint_drive_enabled = false;
-double direct_waypoint_goal_tolerance = 1.0;
-double direct_waypoint_final_goal_tolerance = 0.45;
+double direct_waypoint_goal_tolerance = 0.10;
+double direct_waypoint_final_goal_tolerance = 0.10;
 double direct_waypoint_cruise_speed = 0.45;
 double direct_waypoint_min_speed = 0.12;
 double direct_waypoint_slow_radius = 2.0;
@@ -86,6 +86,9 @@ double direct_waypoint_in_place_angle_threshold = 1.55;
 double direct_waypoint_progress_timeout = 20.0;
 double direct_waypoint_progress_epsilon = 0.05;
 double direct_waypoint_control_frequency = 20.0;
+double direct_waypoint_near_goal_heading_radius = 0.0;
+double direct_waypoint_near_goal_max_speed = 0.08;
+double direct_waypoint_near_goal_max_angular_speed = 0.15;
 
 
 int countWaypointsInFile(std::string path_local)
@@ -782,9 +785,17 @@ bool driveDirectToWaypoint(
     const double in_place_angle_threshold =
         std::max(0.2, std::min(M_PI, std::fabs(direct_waypoint_in_place_angle_threshold)));
     const double control_frequency = std::max(1.0, direct_waypoint_control_frequency);
+    const double near_goal_heading_radius =
+        std::max(goal_tolerance, std::fabs(direct_waypoint_near_goal_heading_radius));
+    const double near_goal_max_speed =
+        std::min(cruise_speed, std::max(0.0, std::fabs(direct_waypoint_near_goal_max_speed)));
+    const double near_goal_max_angular_speed =
+        std::min(max_angular_speed, std::max(0.0, std::fabs(direct_waypoint_near_goal_max_angular_speed)));
 
     bool marker_turned_green = false;
     double best_distance = 1e9;
+    bool have_stable_desired_yaw = false;
+    double stable_desired_yaw = 0.0;
     ros::Time last_progress_time = ros::Time::now();
     ros::Rate rate(control_frequency);
 
@@ -858,7 +869,16 @@ bool driveDirectToWaypoint(
             return false;
         }
 
-        const double desired_yaw = std::atan2(dy, dx);
+        const bool near_goal_heading_hold =
+            near_goal_heading_radius > goal_tolerance && distance <= near_goal_heading_radius;
+        if(!near_goal_heading_hold || !have_stable_desired_yaw)
+        {
+            stable_desired_yaw = std::atan2(dy, dx);
+            have_stable_desired_yaw = true;
+        }
+
+        const double desired_yaw =
+            near_goal_heading_hold ? stable_desired_yaw : std::atan2(dy, dx);
         const double yaw_error = normalizeAngle(desired_yaw - robot_pose.yaw);
         const double abs_yaw_error = std::fabs(yaw_error);
 
@@ -868,7 +888,7 @@ bool driveDirectToWaypoint(
             -max_angular_speed,
             max_angular_speed);
 
-        if(abs_yaw_error > in_place_angle_threshold)
+        if(abs_yaw_error > in_place_angle_threshold && !near_goal_heading_hold)
         {
             cmd.linear.x = 0.0;
             if(std::fabs(angular_cmd) < min_turn_speed)
@@ -893,6 +913,18 @@ bool driveDirectToWaypoint(
                 0.25,
                 1.0);
             cmd.linear.x = speed * heading_scale;
+            if(near_goal_heading_hold && near_goal_max_speed > 0.0)
+            {
+                cmd.linear.x = std::min(cmd.linear.x, near_goal_max_speed);
+            }
+        }
+
+        if(near_goal_heading_hold)
+        {
+            angular_cmd = clampDouble(
+                angular_cmd,
+                -near_goal_max_angular_speed,
+                near_goal_max_angular_speed);
         }
 
         cmd.angular.z = angular_cmd;
@@ -1150,8 +1182,8 @@ int main(int argc, char** argv)
     ros::param::param<double>("/outdoor_waypoint_nav/return_heading_pid_settle_time", return_heading_pid_settle_time, 0.4);
     ros::param::param<double>("/outdoor_waypoint_nav/return_heading_pid_timeout", return_heading_pid_timeout, 12.0);
     ros::param::param<bool>("/outdoor_waypoint_nav/direct_waypoint_drive_enabled", direct_waypoint_drive_enabled, false);
-    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_goal_tolerance", direct_waypoint_goal_tolerance, 1.0);
-    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance", direct_waypoint_final_goal_tolerance, 0.45);
+    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_goal_tolerance", direct_waypoint_goal_tolerance, 0.10);
+    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance", direct_waypoint_final_goal_tolerance, 0.10);
     ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_cruise_speed", direct_waypoint_cruise_speed, 0.45);
     ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_min_speed", direct_waypoint_min_speed, 0.12);
     ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_slow_radius", direct_waypoint_slow_radius, 2.0);
@@ -1162,6 +1194,9 @@ int main(int argc, char** argv)
     ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_progress_timeout", direct_waypoint_progress_timeout, 20.0);
     ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_progress_epsilon", direct_waypoint_progress_epsilon, 0.05);
     ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_control_frequency", direct_waypoint_control_frequency, 20.0);
+    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_near_goal_heading_radius", direct_waypoint_near_goal_heading_radius, 0.0);
+    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_near_goal_max_speed", direct_waypoint_near_goal_max_speed, 0.08);
+    ros::param::param<double>("/outdoor_waypoint_nav/direct_waypoint_near_goal_max_angular_speed", direct_waypoint_near_goal_max_angular_speed, 0.15);
     if(waypoint_marker_topic != "/outdoor_waypoint_nav/collected_waypoints")
     {
         pubWaypointMarkers.shutdown();

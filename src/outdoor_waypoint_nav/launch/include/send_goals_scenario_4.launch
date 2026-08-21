@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- The Scenario-4 manager starts this only after l -> y -> c -> k.
+  <!-- The Scenario-4 manager starts this only after l -> y.
        It keeps the normal send_goals direct-pursuit settings but never
        overwrites points_outdoor.txt. -->
   <arg name="coordinates_file" default="/waypoint_files/points_scenario_4.txt" />

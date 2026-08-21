@@ -70,7 +70,9 @@ catkin_install_python(PROGRAMS
   scripts/filtered_collect_gps_waypoints.py
   scripts/gnss_correlated_noise.py
   scripts/gnss_outage_gate.py
+  scripts/gps_kalman_filter.py
   scripts/gps_covariance_relay.py
+  scripts/home_to_initial_waypoint.py
   scripts/imu_covariance_log.py
   scripts/imu_covariance_relay.py
   scripts/inovation.py

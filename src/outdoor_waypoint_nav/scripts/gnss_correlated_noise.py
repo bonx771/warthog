@@ -9,8 +9,8 @@ The noise model follows the experiment specification:
 The state is maintained independently in local East and North directions.  The
 result is converted to latitude/longitude with WGS-84 radii, so the configured
 noise is expressed in metres rather than in arbitrary degrees.  The receiver's
-reported NavSatFix covariance is retained and the marginal variance of the
-injected noise is added to it.
+reported NavSatFix covariance is retained and an effective variance is added so
+downstream filters do not treat temporally correlated samples as independent.
 """
 
 import copy
@@ -99,6 +99,16 @@ class CorrelatedGnssNoise:
             "~reached_waypoint_topic",
             "/outdoor_waypoint_nav/waypoint_reached_index",
         )
+        self.finish_topic = str(
+            rospy.get_param(
+                "~finish_topic", "/outdoor_waypoint_nav/waypoint_following_status"
+            )
+        ).strip()
+        self.home_finish_topic = str(
+            rospy.get_param(
+                "~home_finish_topic", "/outdoor_waypoint_nav/home_navigation_status"
+            )
+        ).strip()
         self.noise_start_after_waypoint_index = int(
             rospy.get_param("~noise_start_after_waypoint_index", 2)
         )
@@ -169,6 +179,15 @@ class CorrelatedGnssNoise:
         self.stationary_variance_north = (
             self.stationary_variance_scale * self.innovation_sigma_north ** 2
         )
+        # Downstream EKFs assume independent measurements. Inflate the reported
+        # covariance by the integrated autocorrelation time of the AR(1) noise.
+        self.correlation_inflation_factor = (1.0 + self.alpha) / (1.0 - self.alpha)
+        self.effective_variance_east = (
+            self.correlation_inflation_factor * self.stationary_variance_east
+        )
+        self.effective_variance_north = (
+            self.correlation_inflation_factor * self.stationary_variance_north
+        )
 
         self.first_fix_time = None
         self.last_odom_position = None
@@ -177,6 +196,8 @@ class CorrelatedGnssNoise:
         self.state_north_m = 0.0
         self.was_active = False
         self.reached_waypoint_index = None
+        self.completion_received = False
+        self.completion_reason = ""
 
         self.publisher = rospy.Publisher(self.output_topic, NavSatFix, queue_size=20)
         self.offset_publisher = rospy.Publisher(
@@ -200,17 +221,37 @@ class CorrelatedGnssNoise:
                 queue_size=10,
                 tcp_nodelay=True,
             )
+        if self.finish_topic:
+            rospy.Subscriber(
+                self.finish_topic,
+                Bool,
+                self._completion_callback,
+                callback_args="waypoint completion",
+                queue_size=5,
+                tcp_nodelay=True,
+            )
+        if self.home_finish_topic:
+            rospy.Subscriber(
+                self.home_finish_topic,
+                Bool,
+                self._completion_callback,
+                callback_args="home completion",
+                queue_size=5,
+                tcp_nodelay=True,
+            )
 
         if self.activation_mode == "waypoint_interval":
             rospy.loginfo(
                 "GNSS correlated noise: %s -> %s, alpha=%.3f, "
-                "stationary sigma E/N=%.3f/%.3f m; active after reached WP%d "
+                "stationary sigma E/N=%.3f/%.3f m, effective R E/N=%.3f/%.3f m^2; active after reached WP%d "
                 "and clean again at reached WP%d (topic: %s)",
                 self.input_topic,
                 self.output_topic,
                 self.alpha,
                 math.sqrt(self.stationary_variance_east),
                 math.sqrt(self.stationary_variance_north),
+                self.effective_variance_east,
+                self.effective_variance_north,
                 self.noise_start_after_waypoint_index,
                 self.noise_stop_at_waypoint_index,
                 self.reached_waypoint_topic,
@@ -219,7 +260,7 @@ class CorrelatedGnssNoise:
             rospy.loginfo(
                 "GNSS correlated noise: %s -> %s, alpha=%.3f, "
                 "innovation sigma E/N=%.3f/%.3f m, stationary sigma E/N=%.3f/%.3f m, "
-                "start time/distance=%.1f s/%.1f m, end=%.1f m, fade start=%.1f m",
+                "effective R E/N=%.3f/%.3f m^2, start time/distance=%.1f s/%.1f m, end=%.1f m, fade start=%.1f m",
                 self.input_topic,
                 self.output_topic,
                 self.alpha,
@@ -227,6 +268,8 @@ class CorrelatedGnssNoise:
                 self.innovation_sigma_north,
                 math.sqrt(self.stationary_variance_east),
                 math.sqrt(self.stationary_variance_north),
+                self.effective_variance_east,
+                self.effective_variance_north,
                 self.start_after_time_sec,
                 self.start_after_distance_m,
                 self.end_after_distance_m,
@@ -245,6 +288,21 @@ class CorrelatedGnssNoise:
         if self.reached_waypoint_index != waypoint_index:
             rospy.loginfo("Waypoint status updated: reached WP%d", waypoint_index)
         self.reached_waypoint_index = waypoint_index
+
+    def _completion_callback(self, msg, reason):
+        if not msg.data:
+            return
+        if self.completion_received:
+            return
+        self.completion_received = True
+        self.completion_reason = str(reason)
+        if self.was_active:
+            rospy.loginfo("GNSS noise disabled after %s; passing clean fixes through", reason)
+        else:
+            rospy.loginfo("GNSS noise held clean after %s", reason)
+        self.was_active = False
+        self._reset_noise_state()
+        self.active_publisher.publish(Bool(data=False))
 
     def _odom_callback(self, msg):
         point = msg.pose.pose.position
@@ -273,6 +331,8 @@ class CorrelatedGnssNoise:
         self.state_north_m = 0.0
 
     def _is_active(self, now):
+        if self.completion_received:
+            return False
         if self.activation_mode == "waypoint_interval":
             return (
                 self.reached_waypoint_index is not None
@@ -310,8 +370,8 @@ class CorrelatedGnssNoise:
             covariance = [0.0] * 9
 
         covariance = [value if math.isfinite(value) else 0.0 for value in covariance]
-        covariance[0] = max(0.0, covariance[0]) + scale * scale * self.stationary_variance_east
-        covariance[4] = max(0.0, covariance[4]) + scale * scale * self.stationary_variance_north
+        covariance[0] = max(0.0, covariance[0]) + scale * scale * self.effective_variance_east
+        covariance[4] = max(0.0, covariance[4]) + scale * scale * self.effective_variance_north
         result.position_covariance = covariance
         if result.position_covariance_type == NavSatFix.COVARIANCE_TYPE_UNKNOWN:
             result.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
@@ -400,19 +460,23 @@ class CorrelatedGnssNoise:
         if self.activation_mode == "waypoint_interval":
             rospy.loginfo_throttle(
                 5.0,
-                "GNSS noise active: reached WP%d, E/N=%.2f/%.2f m",
+                "GNSS noise active: reached WP%d, E/N=%.2f/%.2f m, R_eff E/N=%.2f/%.2f m^2",
                 self.reached_waypoint_index,
                 east_m,
                 north_m,
+                scale * scale * self.effective_variance_east,
+                scale * scale * self.effective_variance_north,
             )
         else:
             rospy.loginfo_throttle(
                 5.0,
-                "GNSS noise active: distance=%.1f m, scale=%.2f, E/N=%.2f/%.2f m",
+                "GNSS noise active: distance=%.1f m, scale=%.2f, E/N=%.2f/%.2f m, R_eff E/N=%.2f/%.2f m^2",
                 self.distance_travelled_m,
                 scale,
                 east_m,
                 north_m,
+                scale * scale * self.effective_variance_east,
+                scale * scale * self.effective_variance_north,
             )
 
 

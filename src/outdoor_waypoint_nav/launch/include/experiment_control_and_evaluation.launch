@@ -20,6 +20,7 @@
   <arg name="evaluation_start_on_waypoint_index_zero" default="false" />
   <arg name="evaluation_start_topic" default="" />
   <arg name="evaluation_allow_multiple_runs" default="false" />
+  <arg name="evaluation_shutdown_after_report" default="true" />
   <!-- CSV logger settings.  Each Terminal-2 scenario supplies its own name
        and metadata, while the implementation stays shared here. -->
   <arg name="trajectory_logging_enabled" default="true" />
@@ -45,6 +46,7 @@
         output="screen">
     <param name="odom_topic" value="/outdoor_waypoint_nav/odometry/filtered_map" />
     <param name="finish_topic" value="/outdoor_waypoint_nav/waypoint_following_status" />
+    <param name="home_finish_topic" value="/outdoor_waypoint_nav/home_navigation_status" />
     <param name="output_dir" value="$(arg evaluation_output_dir)" />
     <param name="show_plot" value="$(arg evaluation_show_plot)" type="bool" />
     <param name="auto_finish_on_status" value="true" type="bool" />
@@ -54,12 +56,13 @@
     <param name="start_on_waypoint_index_zero" value="$(arg evaluation_start_on_waypoint_index_zero)" type="bool" />
     <param name="start_topic" value="$(arg evaluation_start_topic)" type="string" />
     <param name="allow_multiple_runs" value="$(arg evaluation_allow_multiple_runs)" type="bool" />
+    <param name="shutdown_after_report" value="$(arg evaluation_shutdown_after_report)" type="bool" />
     <param name="run_directory_topic" value="$(arg experiment_run_directory_topic)" type="string" />
   </node>
 
   <!-- Starts recording only after RB/r creates gps_waypoint and it publishes
-       waypoint_reached_index=0.  It closes the CSV files on completion or
-       when this Terminal-2 launch is stopped. -->
+       waypoint_reached_index=0.  It closes the CSV files on waypoint
+       completion, home completion, or when this Terminal-2 launch is stopped. -->
   <node if="$(arg trajectory_logging_enabled)"
         pkg="outdoor_waypoint_nav"
         type="experiment_trajectory_csv_logger.py"
@@ -74,5 +77,6 @@
     <param name="allow_multiple_runs" value="$(arg trajectory_allow_multiple_runs)" type="bool" />
     <param name="run_directory_topic" value="$(arg experiment_run_directory_topic)" type="string" />
     <param name="finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" type="double" />
+    <param name="home_finish_topic" value="/outdoor_waypoint_nav/home_navigation_status" />
   </node>
 </launch>

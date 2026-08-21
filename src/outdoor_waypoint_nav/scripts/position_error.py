@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Real-world localization final-position error evaluator.
+Real-world localization position-error evaluator.
 
 Run this node before waypoint navigation:
   rosrun outdoor_waypoint_nav position_error.py
@@ -50,6 +50,12 @@ class FinalPositionErrorEvaluator:
             "~finish_topic",
             "/outdoor_waypoint_nav/waypoint_following_status",
         )
+        self.home_finish_topic = str(
+            rospy.get_param(
+                "~home_finish_topic",
+                "/outdoor_waypoint_nav/home_navigation_status",
+            )
+        ).strip()
         configured_waypoint_file = rospy.get_param("~waypoint_file", "")
         if not configured_waypoint_file:
             configured_waypoint_file = default_waypoint_file
@@ -81,6 +87,7 @@ class FinalPositionErrorEvaluator:
         )
         self.start_topic = str(rospy.get_param("~start_topic", "")).strip()
         self.allow_multiple_runs = rospy.get_param("~allow_multiple_runs", False)
+        self.shutdown_after_report = rospy.get_param("~shutdown_after_report", True)
         self.run_directory_topic = str(
             rospy.get_param(
                 "~run_directory_topic",
@@ -103,6 +110,9 @@ class FinalPositionErrorEvaluator:
         self.start_time = None
         self.finish_requested = False
         self.finish_request_time = None
+        self.finish_reason = ""
+        self.finish_target_index = -1
+        self.finish_target_description = "final waypoint"
         self.report_written = False
         self.recording_active = not (
             self.start_on_waypoint_index_zero or bool(self.start_topic)
@@ -114,6 +124,13 @@ class FinalPositionErrorEvaluator:
         rospy.Subscriber(self.odom_topic, Odometry, self._odom_cb, queue_size=200)
         if self.auto_finish_on_status:
             rospy.Subscriber(self.finish_topic, Bool, self._finish_cb, queue_size=5)
+            if self.home_finish_topic:
+                rospy.Subscriber(
+                    self.home_finish_topic,
+                    Bool,
+                    self._home_finish_cb,
+                    queue_size=5,
+                )
         if self.start_topic:
             rospy.Subscriber(self.start_topic, Bool, self._start_cb, queue_size=5)
         elif self.start_on_waypoint_index_zero:
@@ -155,7 +172,7 @@ class FinalPositionErrorEvaluator:
             )
         rospy.loginfo(
             "[final_position_error] Start this node before waypoint navigation. "
-            "The report image will be generated automatically when navigation finishes."
+            "The report image will be generated automatically when navigation or home finishes."
         )
 
     def _resolve_package_path(self, value):
@@ -328,18 +345,34 @@ class FinalPositionErrorEvaluator:
             self.path.append(pose)
 
     def _finish_cb(self, msg):
-        if not msg.data or self.finish_requested:
+        if not msg.data:
+            return
+        self._request_finish("waypoint completion signal", -1, "final waypoint")
+
+    def _home_finish_cb(self, msg):
+        if not msg.data:
+            return
+        self._request_finish("home completion signal", 0, "initial waypoint")
+
+    def _request_finish(self, reason, target_index, target_description):
+        if self.finish_requested:
             return
         if not self.recording_active:
             rospy.logwarn(
-                "[final_position_error] Ignoring completion received before the run started."
+                "[final_position_error] Ignoring %s received before the run started.",
+                reason,
             )
             return
         self.finish_requested = True
         self.finish_request_time = rospy.Time.now()
+        self.finish_reason = reason
+        self.finish_target_index = int(target_index)
+        self.finish_target_description = str(target_description)
         rospy.loginfo(
-            "[final_position_error] Received waypoint completion signal. "
+            "[final_position_error] Received %s. Target is %s. "
             "Waiting %.1fs before writing the report.",
+            reason,
+            self.finish_target_description,
             self.finish_delay_sec,
         )
 
@@ -380,6 +413,9 @@ class FinalPositionErrorEvaluator:
         self.start_time = None
         self.finish_requested = False
         self.finish_request_time = None
+        self.finish_reason = ""
+        self.finish_target_index = -1
+        self.finish_target_description = "final waypoint"
         rospy.loginfo(
             "[final_position_error] Received %s; recording started.", reason
         )
@@ -392,6 +428,9 @@ class FinalPositionErrorEvaluator:
         self.start_time = None
         self.finish_requested = False
         self.finish_request_time = None
+        self.finish_reason = ""
+        self.finish_target_index = -1
+        self.finish_target_description = "final waypoint"
         self.report_written = False
         self.current_run_directory = ""
         self.recording_active = not (
@@ -409,6 +448,16 @@ class FinalPositionErrorEvaluator:
                 self.path[index][1] - self.path[index - 1][1],
             )
         return total
+
+    def _report_target(self):
+        if not self.map_waypoints:
+            raise RuntimeError("No transformed waypoint is available for report target")
+
+        target_index = int(self.finish_target_index)
+        if target_index < 0:
+            target_index = len(self.map_waypoints) + target_index
+        target_index = max(0, min(len(self.map_waypoints) - 1, target_index))
+        return target_index, self.map_waypoints[target_index]
 
     def _load_pyplot(self):
         import matplotlib
@@ -446,11 +495,14 @@ class FinalPositionErrorEvaluator:
         if not self._try_update_map_waypoints(blocking_timeout=3.0):
             rospy.logerr(
                 "[final_position_error] Could not transform waypoints into map frame; "
-                "cannot compute final-position error."
+                "cannot compute position error."
             )
             return
 
-        goal_x, goal_y = self.map_waypoints[-1]
+        target_index, target = self._report_target()
+        goal_x, goal_y = target
+        target_name = "WP{}".format(target_index + 1)
+        target_description = self.finish_target_description or "waypoint"
         actual_x, actual_y, final_time = self.latest_pose
         error_x = actual_x - goal_x
         error_y = actual_y - goal_y
@@ -477,14 +529,32 @@ class FinalPositionErrorEvaluator:
             goal=(goal_x, goal_y),
             actual=(actual_x, actual_y),
             error=(error_x, error_y, final_error),
+            target_name=target_name,
+            target_description=target_description,
             duration=duration,
             path_length=path_length,
         )
 
-        rospy.loginfo("[final_position_error] Final-position error: %.3f m", final_error)
+        rospy.loginfo(
+            "[final_position_error] Position error to %s (%s): %.3f m",
+            target_name,
+            target_description,
+            final_error,
+        )
         rospy.loginfo("[final_position_error] Saved report image: %s", output_path)
 
-    def _plot_report(self, output_path, reason, goal, actual, error, duration, path_length):
+    def _plot_report(
+        self,
+        output_path,
+        reason,
+        goal,
+        actual,
+        error,
+        target_name,
+        target_description,
+        duration,
+        path_length,
+    ):
         plt = self._load_pyplot()
 
         path_x = [pose[0] for pose in self.path]
@@ -494,7 +564,7 @@ class FinalPositionErrorEvaluator:
 
         fig, ax = plt.subplots(figsize=(11, 8))
         fig.subplots_adjust(right=0.72)
-        ax.set_title("Real-World Localization Evaluation - Final Position Error")
+        ax.set_title("Real-World Localization Evaluation - Position Error")
         ax.set_xlabel("Map X (m)")
         ax.set_ylabel("Map Y (m)")
         ax.set_aspect("equal", adjustable="box")
@@ -554,7 +624,7 @@ class FinalPositionErrorEvaluator:
             color="#9333ea",
             edgecolors="#111827",
             zorder=7,
-            label="Final waypoint",
+            label="Target {}".format(target_name),
         )
         ax.scatter(
             [actual[0]],
@@ -572,7 +642,7 @@ class FinalPositionErrorEvaluator:
             ":",
             color="#dc2626",
             linewidth=2.0,
-            label="Final position error",
+            label="Position error to {}".format(target_name),
         )
 
         mid_x = (goal[0] + actual[0]) * 0.5
@@ -589,11 +659,11 @@ class FinalPositionErrorEvaluator:
 
         stats = [
             "EVALUATION SUMMARY",
-            "Metric: final-position error only",
+            "Metric: position error to {}".format(target_name),
             "",
-            "Final waypoint: WP{}".format(len(self.map_waypoints)),
+            "Target waypoint: {} ({})".format(target_name, target_description),
             "Target (map):      x={:.3f}, y={:.3f}".format(goal[0], goal[1]),
-            "Actual final pose: x={:.3f}, y={:.3f}".format(actual[0], actual[1]),
+            "Actual pose:       x={:.3f}, y={:.3f}".format(actual[0], actual[1]),
             "",
             "dx = {:+.3f} m".format(error[0]),
             "dy = {:+.3f} m".format(error[1]),
@@ -639,7 +709,10 @@ class FinalPositionErrorEvaluator:
         while not rospy.is_shutdown():
             if self.report_written:
                 if not self.allow_multiple_runs:
-                    break
+                    if self.shutdown_after_report:
+                        break
+                    rate.sleep()
+                    continue
                 self._reset_for_next_run()
 
             if self.waypoints_loaded or self.recording_active:
@@ -648,9 +721,9 @@ class FinalPositionErrorEvaluator:
             if self.finish_requested and self.finish_request_time is not None:
                 elapsed = (rospy.Time.now() - self.finish_request_time).to_sec()
                 if elapsed >= self.finish_delay_sec:
-                    self._write_report("waypoint completion signal")
-                    if not self.allow_multiple_runs:
-                        rospy.signal_shutdown("final position error report written")
+                    self._write_report(self.finish_reason or "completion signal")
+                    if not self.allow_multiple_runs and self.shutdown_after_report:
+                        rospy.signal_shutdown("position error report written")
                         break
 
             rate.sleep()

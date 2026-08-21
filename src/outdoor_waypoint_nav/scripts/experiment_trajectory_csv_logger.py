@@ -107,6 +107,12 @@ class ExperimentTrajectoryCsvLogger:
         self.finish_topic = rospy.get_param(
             "~finish_topic", "/outdoor_waypoint_nav/waypoint_following_status"
         )
+        self.home_finish_topic = str(
+            rospy.get_param(
+                "~home_finish_topic",
+                "/outdoor_waypoint_nav/home_navigation_status",
+            )
+        ).strip()
         self.finish_delay_sec = max(0.0, float(rospy.get_param("~finish_delay_sec", 0.5)))
         self.rmse_topic = rospy.get_param(
             "~rmse_topic", "/outdoor_waypoint_nav/experiment_logger/cross_track_rmse_m"
@@ -171,6 +177,14 @@ class ExperimentTrajectoryCsvLogger:
         if self.start_topic:
             rospy.Subscriber(self.start_topic, Bool, self._start_cb, queue_size=5, tcp_nodelay=True)
         rospy.Subscriber(self.finish_topic, Bool, self._finish_cb, queue_size=10, tcp_nodelay=True)
+        if self.home_finish_topic:
+            rospy.Subscriber(
+                self.home_finish_topic,
+                Bool,
+                self._finish_cb,
+                queue_size=10,
+                tcp_nodelay=True,
+            )
         rospy.Subscriber(
             "/outdoor_waypoint_nav/gnss_noise/active", Bool, self._noise_active_cb, queue_size=10
         )

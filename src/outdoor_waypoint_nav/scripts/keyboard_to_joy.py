@@ -31,6 +31,7 @@ class KeyboardToJoy:
             "r": 5,  # RB
             "s": 7,  # START
             "b": 1,  # B
+            "h": 0,  # A / Home
             "c": 2,  # X (reserved for Scenario 4 route calculation)
             "y": 3,  # Y
             "k": 6,  # BACK
@@ -180,12 +181,13 @@ class KeyboardToJoy:
             "r": "start waypoint following",
             "s": "heading calibration",
             "b": "stop robot motion",
-            "c": "calculate Scenario 4 waypoints",
+            "h": "return to initial waypoint",
+            "c": "reserved command",
             "y": "continue or collect waypoint",
             "k": "end waypoint collection",
         }
 
-        for key in ["l", "r", "s", "b", "c", "y", "k"]:
+        for key in ["l", "r", "h", "s", "b", "c", "y", "k"]:
             if key in self.key_to_button:
                 banner_lines.append(f"{key} -> {key_descriptions[key]}")
 
