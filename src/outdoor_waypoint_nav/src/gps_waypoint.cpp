@@ -794,8 +794,10 @@ bool driveDirectToWaypoint(
 
     bool marker_turned_green = false;
     double best_distance = 1e9;
+    double closest_distance = 1e9;
     bool have_stable_desired_yaw = false;
     double stable_desired_yaw = 0.0;
+    bool near_goal_overshoot_recovery = false;
     ros::Time last_progress_time = ros::Time::now();
     ros::Rate rate(control_frequency);
 
@@ -820,6 +822,22 @@ bool driveDirectToWaypoint(
         const double dx = waypoint.point.x - robot_pose.x;
         const double dy = waypoint.point.y - robot_pose.y;
         const double distance = std::sqrt((dx * dx) + (dy * dy));
+
+        closest_distance = std::min(closest_distance, distance);
+        if(!near_goal_overshoot_recovery &&
+           closest_distance <= near_goal_heading_radius &&
+           distance > (closest_distance + direct_waypoint_progress_epsilon))
+        {
+            near_goal_overshoot_recovery = true;
+            have_stable_desired_yaw = false;
+            ROS_WARN(
+                "Waypoint %d/%d distance increased from %.3fm to %.3fm near goal; "
+                "releasing heading hold and steering back to the waypoint.",
+                waypoint_index,
+                total_waypoints,
+                closest_distance,
+                distance);
+        }
 
         if(!marker_turned_green && distance <= waypoint_marker_activation_radius)
         {
@@ -870,7 +888,9 @@ bool driveDirectToWaypoint(
         }
 
         const bool near_goal_heading_hold =
-            near_goal_heading_radius > goal_tolerance && distance <= near_goal_heading_radius;
+            !near_goal_overshoot_recovery &&
+            near_goal_heading_radius > goal_tolerance &&
+            distance <= near_goal_heading_radius;
         if(!near_goal_heading_hold || !have_stable_desired_yaw)
         {
             stable_desired_yaw = std::atan2(dy, dx);
@@ -1297,7 +1317,9 @@ int main(int argc, char** argv)
             ROS_ERROR("Direct waypoint drive failed for waypoint %d/%d.", currentWaypointIndex, totalWaypoints);
             ROS_INFO("Exiting node...");
             std_msgs::Bool node_ended;
-            node_ended.data = true;
+            // False means the controller stopped without completing the route.
+            // Evaluators only finalize a run when this status is true.
+            node_ended.data = false;
             pubWaypointNodeEnded.publish(node_ended);
             ros::shutdown();
             return 0;

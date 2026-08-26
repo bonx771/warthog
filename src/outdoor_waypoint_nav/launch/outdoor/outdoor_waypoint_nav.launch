@@ -6,9 +6,8 @@
     <arg name="rviz_config" default="$(find outdoor_waypoint_nav)/rviz_config/real.rviz" />
     <arg name="use_lidar" default="false" />
     <arg name="use_gps" default="true" />
-    <!-- Terminal 2 of each experiment publishes the selected GNSS stream here.
-         This keeps navsat_transform in the base launch and avoids duplicate
-         EKF/navsat/move_base nodes when a scenario is started separately. -->
+    <!-- Each K1-K4 launch in Terminal 2 owns exactly one publisher for this
+         selected GNSS stream. T1 only consumes it. -->
     <arg name="gps_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
     <arg name="ekf_odom_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_odom.yaml" />
     <arg name="ekf_map_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_map.yaml" />

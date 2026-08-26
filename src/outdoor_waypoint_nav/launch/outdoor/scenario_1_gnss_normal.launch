@@ -2,7 +2,7 @@
 <launch>
   <!--
     Terminal 2 for Scenario 1. Start outdoor_waypoint_nav.launch first in
-    Terminal 1; this relay supplies its navsat_transform with clean GNSS.
+    Terminal 1. K1 owns the single clean-GNSS publisher selected by T1.
   -->
   <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
   <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
