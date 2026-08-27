@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Terminal 2: simulated waypoint navigation with LiDAR obstacle avoidance.
+    Start outdoor_waypoint_nav_sim.launch first in Terminal 1.  To test actual
+    static obstacles, pass a Gazebo world that contains them (for example
+    warthog_gazebo/worlds/warthog.world) to the Terminal-1 launch.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="waypoint_file" default="/waypoint_files/points_sim.txt" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results/simulation" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/simulation" />
+  <arg name="trajectory_run_naming_mode" default="sequential" />
+
+  <!-- Reset any prior direct-pursuit configuration. gps_waypoint will send
+       MoveBase goals, enabling global/local plans around LiDAR obstacles. -->
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="false"
+         type="bool" />
+
+  <!-- This scenario is the sole publisher to the selected GNSS stream. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_obstacle_sim_clean_gps_to_navsat"
+        args="/gps/fix $(arg selected_fix_topic)"
+        output="screen" />
+
+  <!-- Preserve keyboard/RB control, but make r/RB start the standard
+       simulation move_base waypoint sender rather than the direct sender. -->
+  <include file="$(find outdoor_waypoint_nav)/launch/simulation/joy_launch_control_sim_no_gps_relay.launch">
+    <arg name="selected_fix_topic" value="$(arg selected_fix_topic)" />
+    <arg name="send_goals_launch_file"
+         value="$(find outdoor_waypoint_nav)/launch/include/send_goals_sim.launch" />
+  </include>
+
+  <!-- Same evaluator and trajectory logger configuration as Scenario 1 Sim;
+       joystick control is included above to select the obstacle sender. -->
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="include_joy_control" value="false" />
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_run_naming_mode" value="$(arg trajectory_run_naming_mode)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_scenario_name" value="scenario_obstacle_sim" />
+    <arg name="trajectory_scenario_metadata"
+         value="environment=simulation;selected_gnss=raw_clean;navigation=move_base_lidar_static_obstacle_avoidance" />
+  </include>
+</launch>

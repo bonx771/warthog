@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Scenario: normal GNSS waypoint navigation with LiDAR-based avoidance of
+    static obstacles. Start outdoor_waypoint_obstacle.launch in Terminal 1.
+    This launch keeps the Scenario-1 GNSS, logging and evaluation flow.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/experiment_runs" />
+
+  <!-- Configure the route and make RB/r start the move_base-based sender. -->
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+  <param name="/outdoor_waypoint_nav/send_goals_launch_file"
+         value="/launch/include/send_goals_obstacle.launch"
+         type="string" />
+
+  <!-- K-obstacle owns the clean GNSS stream consumed by Terminal 1. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_obstacle_clean_gps_to_navsat"
+        args="/gps/fix $(arg selected_fix_topic)"
+        output="screen" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_scenario_name" value="scenario_obstacle" />
+    <arg name="trajectory_scenario_metadata"
+         value="selected_gnss=raw_clean;navigation=move_base_lidar_static_obstacle_avoidance" />
+  </include>
+</launch>

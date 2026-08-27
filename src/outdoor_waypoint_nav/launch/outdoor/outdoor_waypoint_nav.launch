@@ -13,10 +13,6 @@
     <arg name="ekf_map_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_map.yaml" />
 
     <include if="$(arg use_gps)" file="$(find gps_pkg)/launch/navsat_transform_gps.launch"></include>
-
-    <!-- <include file="$(find imu_bias_compensator)/launch/imu_republisher.launch" /> -->
-
-    <!-- <include file="$(find imu_filter_madgwick)/launch/imu_filter_madgwick.launch" /> -->
     
     <include file="$(find imu_pkg)/launch/imu_ins.launch" />
 

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+
+<!--
+  Waypoint sender for LiDAR obstacle avoidance.
+
+  Keep every normal waypoint setting from send_goals.launch, but hand each
+  waypoint to move_base instead of using direct-pursuit /cmd_vel control.
+  move_base can then plan around static obstacles in the LiDAR costmaps.
+-->
+<launch>
+
+  <arg name="coordinates_file" default="/waypoint_files/points_outdoor.txt" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch">
+    <arg name="coordinates_file" value="$(arg coordinates_file)" />
+  </include>
+
+  <!-- roslaunch loads these parameters before it starts gps_waypoint. -->
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="false"
+         type="bool" />
+  <param name="/outdoor_waypoint_nav/waypoint_cmd_topic"
+         value="/cmd_vel"
+         type="string" />
+
+</launch>

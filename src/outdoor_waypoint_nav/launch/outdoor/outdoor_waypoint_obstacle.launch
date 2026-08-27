@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+
+<!--
+  Outdoor waypoint navigation with LiDAR obstacle data enabled.
+
+  Start this launch in Terminal 1, then start the desired scenario launch in
+  Terminal 2 (for example: scenario_1_gnss_normal.launch).  It has the same
+  localisation, move_base, command relay and RViz flow as
+  outdoor_waypoint_nav.launch; the only behavioural difference is that LiDAR
+  is enabled by default, so move_base receives /front/scan for its costmaps.
+-->
+<launch>
+
+    <arg name="launch_rviz" default="true" />
+    <arg name="rviz_config" default="$(find outdoor_waypoint_nav)/rviz_config/real.rviz" />
+    <arg name="use_lidar" default="true" />
+    <arg name="use_gps" default="true" />
+    <!-- Each K1-K4 launch in Terminal 2 owns exactly one publisher for this
+         selected GNSS stream. T1 only consumes it. -->
+    <arg name="gps_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+    <arg name="ekf_odom_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_odom.yaml" />
+    <arg name="ekf_map_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_map.yaml" />
+
+    <include if="$(arg use_gps)" file="$(find gps_pkg)/launch/navsat_transform_gps.launch" />
+
+    <include file="$(find imu_pkg)/launch/imu_ins.launch" />
+
+    <node pkg="tf2_ros"
+          type="static_transform_publisher"
+          name="base_link_to_lidar"
+          args="0.4 0 0.3 0 0 0 base_link rslidar" />
+
+    <!-- laser.launch stamps LaserScan messages in front_laser; this TF lets
+         the obstacle costmaps transform those readings into their map/odom
+         frames. -->
+    <node pkg="tf2_ros"
+          type="static_transform_publisher"
+          name="base_link_to_front_laser"
+          args="0.4 0 0.3 0 0 0 base_link front_laser" />
+
+    <node pkg="tf2_ros"
+          type="static_transform_publisher"
+          name="base_link_to_gps"
+          args="0 0 0 0 0 0 base_link gps_link" />
+
+    <!-- Publishes the filtered LiDAR scan on /front/scan. -->
+    <include if="$(arg use_lidar)" file="$(find outdoor_waypoint_nav)/launch/include/laser.launch" />
+
+    <include file="$(find outdoor_waypoint_nav)/launch/include/localization_run.launch">
+        <arg name="use_gps" value="$(arg use_gps)" />
+        <arg name="gps_fix_topic" value="$(arg gps_fix_topic)" />
+        <arg name="ekf_odom_params" value="$(arg ekf_odom_params)" />
+        <arg name="ekf_map_params" value="$(arg ekf_map_params)" />
+    </include>
+
+    <!-- With use_lidar=true, move_base loads obstacle costmap parameters and
+         subscribes to /front/scan. -->
+    <include file="$(find warthog_slam)/launch/move_base_nav.launch">
+      <arg name="use_lidar" value="$(arg use_lidar)" />
+      <arg name="cmd_vel_topic" value="/cmd_vel" />
+    </include>
+
+    <!-- Narrow-passage profile, matched to outdoor_waypoint_obstacle_sim.
+         The 1.50 m footprint plus 0.02 m padding gives an approximately
+         0.50 m preferred body clearance at a 1.30 m inflation radius.
+         Cost decay and low crawl speed let the local planner select a valid
+         slow trajectory through a narrow, LiDAR-observed gap. -->
+    <!-- Global costmap: tạo vùng đệm đến 1.30 m quanh vật cản để planner
+         chọn đường dài hạn với khoảng hở thân xe mục tiêu khoảng 50 cm. -->
+    <param name="/move_base/global_costmap/inflater_layer/inflation_radius"
+           value="1.30" type="double" />
+    <!-- Global costmap: cost giảm nhanh khi ra xa vật cản; giúp đường hẹp
+         vẫn được xem là khả thi thay vì bị phạt cost trên diện quá rộng. -->
+    <param name="/move_base/global_costmap/inflater_layer/cost_scaling_factor"
+           value="3.0" type="double" />
+    <!-- Local costmap: vùng đệm dùng cho quỹ đạo ngay trước robot, giữ mục
+         tiêu hở thân xe khoảng 50 cm khi luồn qua vật cản. -->
+    <param name="/move_base/local_costmap/inflater_layer/inflation_radius"
+           value="1.30" type="double" />
+    <!-- Local costmap: cost giảm nhanh theo khoảng cách để local planner vẫn
+         tìm được trajectory hợp lệ trong lối hẹp. -->
+    <param name="/move_base/local_costmap/inflater_layer/cost_scaling_factor"
+           value="3.0" type="double" />
+    <!-- Tốc độ tiến nhỏ nhất 0.15 m/s: cho phép robot bò chậm khi cua hoặc
+         đi qua khe hẹp, thay vì bị buộc phải chọn lệnh tiến quá nhanh. -->
+    <param name="/move_base/TrajectoryPlannerROS/min_vel_x"
+           value="0.15" type="double" />
+    <!-- Trọng số phạt vật cản của local planner: giảm còn 0.25 để robot chấp
+         nhận đi gần vùng inflation hơn khi cần, nhưng vẫn tránh ô va chạm. -->
+    <param name="/move_base/TrajectoryPlannerROS/occdist_scale"
+           value="0.25" type="double" />
+
+    <node pkg="topic_tools"
+          type="relay"
+          name="cmd_vel_to_warthog_controller"
+          args="/cmd_vel /warthog_velocity_controller/cmd_vel" />
+
+    <node if="$(arg launch_rviz)"
+          name="rviz"
+          pkg="rviz"
+          type="rviz"
+          args="-d $(arg rviz_config)" />
+
+</launch>

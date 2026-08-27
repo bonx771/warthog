@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+
+<!--
+  Terminal 1: Gazebo + LiDAR + move_base for static-obstacle avoidance.
+  This reuses the normal GPS simulation stack, but selects warthog.world,
+  which contains static walls and cylinders for the LiDAR costmaps to detect.
+-->
+<launch>
+
+  <arg name="world_name"
+       default="$(find warthog_gazebo)/worlds/warthog.world" />
+  <arg name="gazebo_gui" default="false" />
+  <arg name="gazebo_headless" default="true" />
+  <arg name="launch_rviz" default="true" />
+  <arg name="record_gps_waypoints" default="true" />
+  <arg name="gps_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/simulation/outdoor_waypoint_nav_sim.launch">
+    <arg name="world_name" value="$(arg world_name)" />
+    <arg name="gazebo_gui" value="$(arg gazebo_gui)" />
+    <arg name="gazebo_headless" value="$(arg gazebo_headless)" />
+    <arg name="launch_rviz" value="$(arg launch_rviz)" />
+    <arg name="record_gps_waypoints" value="$(arg record_gps_waypoints)" />
+    <arg name="gps_fix_topic" value="$(arg gps_fix_topic)" />
+  </include>
+
+  <!-- Narrow-passage profile. The robot footprint is 1.50 m wide with 0.02 m
+       padding, so 1.30 m is approximately a 0.50 m preferred body clearance
+       from an obstacle (0.75 + 0.02 + 0.50 = 1.27 m). A steeper cost decay and
+       lower minimum speed allow the local planner to choose a slow, valid turn
+       through this clearance. -->
+  <param name="/move_base/global_costmap/inflater_layer/inflation_radius"
+         value="1.30" type="double" />
+  <param name="/move_base/global_costmap/inflater_layer/cost_scaling_factor"
+         value="3.0" type="double" />
+  <param name="/move_base/local_costmap/inflater_layer/inflation_radius"
+         value="1.30" type="double" />
+  <param name="/move_base/local_costmap/inflater_layer/cost_scaling_factor"
+         value="3.0" type="double" />
+  <param name="/move_base/TrajectoryPlannerROS/min_vel_x"
+         value="0.15" type="double" />
+  <param name="/move_base/TrajectoryPlannerROS/occdist_scale"
+         value="0.25" type="double" />
+
+</launch>
