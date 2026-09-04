@@ -1,25 +1,30 @@
 <?xml version="1.0"?>
 
 <!--
-  Outdoor waypoint navigation with LiDAR obstacle data enabled.
+  Outdoor waypoint navigation with RoboSense LiDAR obstacle data enabled.
 
   Start this launch in Terminal 1, then start the desired scenario launch in
   Terminal 2 (for example: scenario_1_gnss_normal.launch).  It has the same
   localisation, move_base, command relay and RViz flow as
   outdoor_waypoint_nav.launch; the only behavioural difference is that LiDAR
   is enabled by default, so move_base receives /front/scan for its costmaps.
+  The RoboSense driver publishes /rslidar_points; this launch converts that
+  PointCloud2 stream to the LaserScan consumed by the existing costmaps.
 -->
 <launch>
 
     <arg name="launch_rviz" default="true" />
-    <arg name="rviz_config" default="$(find outdoor_waypoint_nav)/rviz_config/real.rviz" />
+    <arg name="rviz_config" default="$(dirname)/../../rviz_config/real_lidar.rviz" />
     <arg name="use_lidar" default="true" />
+    <arg name="lidar_cloud_topic" default="/rslidar_points" />
+    <arg name="lidar_scan_topic" default="/front/scan" />
+    <arg name="lidar_frame" default="rslidar" />
     <arg name="use_gps" default="true" />
     <!-- Each K1-K4 launch in Terminal 2 owns exactly one publisher for this
          selected GNSS stream. T1 only consumes it. -->
     <arg name="gps_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
-    <arg name="ekf_odom_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_odom.yaml" />
-    <arg name="ekf_map_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_map.yaml" />
+    <arg name="ekf_odom_params" default="$(dirname)/../../params/ekf_se_odom.yaml" />
+    <arg name="ekf_map_params" default="$(dirname)/../../params/ekf_se_map.yaml" />
 
     <include if="$(arg use_gps)" file="$(find gps_pkg)/launch/navsat_transform_gps.launch" />
 
@@ -28,25 +33,37 @@
     <node pkg="tf2_ros"
           type="static_transform_publisher"
           name="base_link_to_lidar"
-          args="0.4 0 0.3 0 0 0 base_link rslidar" />
-
-    <!-- laser.launch stamps LaserScan messages in front_laser; this TF lets
-         the obstacle costmaps transform those readings into their map/odom
-         frames. -->
-    <node pkg="tf2_ros"
-          type="static_transform_publisher"
-          name="base_link_to_front_laser"
-          args="0.4 0 0.3 0 0 0 base_link front_laser" />
+          args="0.4 0 0.3 0 0 0 base_link $(arg lidar_frame)" />
 
     <node pkg="tf2_ros"
           type="static_transform_publisher"
           name="base_link_to_gps"
           args="0 0 0 0 0 0 base_link gps_link" />
 
-    <!-- Publishes the filtered LiDAR scan on /front/scan. -->
-    <include if="$(arg use_lidar)" file="$(find outdoor_waypoint_nav)/launch/include/laser.launch" />
+    <!-- RoboSense driver: publishes PointCloud2 on /rslidar_points. -->
+    <include if="$(arg use_lidar)" file="$(find rslidar_sdk)/launch/start.launch" />
 
-    <include file="$(find outdoor_waypoint_nav)/launch/include/localization_run.launch">
+    <!-- Convert RoboSense PointCloud2 to the LaserScan used by move_base. -->
+    <node if="$(arg use_lidar)"
+          pkg="pointcloud_to_laserscan"
+          type="pointcloud_to_laserscan_node"
+          name="rslidar_to_front_scan"
+          output="screen"
+          args="cloud_in:=$(arg lidar_cloud_topic) scan:=$(arg lidar_scan_topic)">
+        <param name="target_frame" value="$(arg lidar_frame)" />
+        <param name="transform_tolerance" value="0.05" />
+        <param name="min_height" value="0.0" />
+        <param name="max_height" value="1.0" />
+        <param name="angle_min" value="-3.14159" />
+        <param name="angle_max" value="3.14159" />
+        <param name="angle_increment" value="0.0058" />
+        <param name="scan_time" value="0.0333333" />
+        <param name="range_min" value="0.5" />
+        <param name="range_max" value="30.0" />
+        <param name="use_inf" value="true" />
+    </node>
+
+    <include file="$(dirname)/../include/localization_run.launch">
         <arg name="use_gps" value="$(arg use_gps)" />
         <arg name="gps_fix_topic" value="$(arg gps_fix_topic)" />
         <arg name="ekf_odom_params" value="$(arg ekf_odom_params)" />

@@ -2,11 +2,11 @@
 <launch>
   <arg name="use_gps" default="true" />
   <arg name="gps_fix_topic" default="/gps/fix" />
-  <arg name="ekf_odom_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_odom.yaml" />
-  <arg name="ekf_map_params" default="$(find outdoor_waypoint_nav)/params/ekf_se_map.yaml" />
+  <arg name="ekf_odom_params" default="$(dirname)/../../params/ekf_se_odom.yaml" />
+  <arg name="ekf_map_params" default="$(dirname)/../../params/ekf_se_map.yaml" />
 
   <group ns="/outdoor_waypoint_nav">
-    <rosparam if="$(arg use_gps)" command="load" file="$(find outdoor_waypoint_nav)/params/navsat_params.yaml" />
+    <rosparam if="$(arg use_gps)" command="load" file="$(dirname)/../../params/navsat_params.yaml" />
 
     <node pkg="robot_localization"
           type="ekf_localization_node"
