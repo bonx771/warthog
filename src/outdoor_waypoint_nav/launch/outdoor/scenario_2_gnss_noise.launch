@@ -28,6 +28,15 @@
          value="$(arg waypoint_file)"
          type="string" />
 
+  <!-- Always use the direct-pursuit sender, even if another scenario left a
+       move_base sender override on the global ROS parameter server. -->
+  <param name="/outdoor_waypoint_nav/send_goals_launch_file"
+         value="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch"
+         type="string" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="true"
+         type="bool" />
+
   <include file="$(find outdoor_waypoint_nav)/launch/include/gnss_correlated_noise.launch">
     <arg name="input_topic" value="/gps/fix" />
     <arg name="output_topic" value="/gps/fix_noisy" />
@@ -57,6 +66,6 @@
     <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
     <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
     <arg name="trajectory_scenario_name" value="scenario_2_gnss_noise" />
-    <arg name="trajectory_scenario_metadata" value="alpha=$(arg alpha);innovation_sigma_m=$(arg innovation_sigma_m);activation_mode=$(arg activation_mode);noise_start_after_wp=$(arg noise_start_after_waypoint_index);noise_stop_at_wp=$(arg noise_stop_at_waypoint_index)" />
+    <arg name="trajectory_scenario_metadata" value="navigation=direct_waypoint;alpha=$(arg alpha);innovation_sigma_m=$(arg innovation_sigma_m);activation_mode=$(arg activation_mode);noise_start_after_wp=$(arg noise_start_after_waypoint_index);noise_stop_at_wp=$(arg noise_stop_at_waypoint_index)" />
   </include>
 </launch>

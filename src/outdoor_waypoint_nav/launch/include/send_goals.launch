@@ -44,12 +44,12 @@
   <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled" value="true" type="bool" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_goal_tolerance" value="0.30" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance" value="0.30" type="double" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_cruise_speed" value="0.54" type="double" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_min_speed" value="0.05" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_cruise_speed" value="0.95" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_min_speed" value="0.08" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_slow_radius" value="2.0" type="double" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_angular_kp" value="1.25" type="double" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_max_angular_speed" value="0.60" type="double" />
-  <param name="/outdoor_waypoint_nav/direct_waypoint_min_turn_speed" value="0.16" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_angular_kp" value="1.00" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_max_angular_speed" value="0.35" type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_min_turn_speed" value="0.12" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_in_place_angle_threshold" value="1.55" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_progress_timeout" value="30.0" type="double" />
   <param name="/outdoor_waypoint_nav/direct_waypoint_progress_epsilon" value="0.05" type="double" />

@@ -22,6 +22,15 @@
          value="$(arg waypoint_file)"
          type="string" />
 
+  <!-- Always use the direct-pursuit sender, even if another scenario left a
+       move_base sender override on the global ROS parameter server. -->
+  <param name="/outdoor_waypoint_nav/send_goals_launch_file"
+         value="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch"
+         type="string" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="true"
+         type="bool" />
+
   <include file="$(find outdoor_waypoint_nav)/launch/include/gnss_outage_gate.launch">
     <arg name="input_topic" value="/gps/fix" />
     <arg name="output_topic" value="/gps/fix_off" />
@@ -47,6 +56,6 @@
     <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
     <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
     <arg name="trajectory_scenario_name" value="scenario_3_gnss_outage" />
-    <arg name="trajectory_scenario_metadata" value="start_after_wp=$(arg start_after_waypoint_index);outage_distance_m=$(arg outage_distance_m)" />
+    <arg name="trajectory_scenario_metadata" value="navigation=direct_waypoint;start_after_wp=$(arg start_after_waypoint_index);outage_distance_m=$(arg outage_distance_m)" />
   </include>
 </launch>

@@ -6,7 +6,7 @@
     This launch keeps the Scenario-1 GNSS, logging and evaluation flow.
   -->
   <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
-  <arg name="waypoint_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="waypoint_file" default="/waypoint_files/points_obstacle.txt" />
   <arg name="evaluation_enabled" default="true" />
   <arg name="evaluation_output_dir" default="/results" />
   <arg name="evaluation_show_plot" default="false" />
@@ -19,7 +19,7 @@
          value="$(arg waypoint_file)"
          type="string" />
   <param name="/outdoor_waypoint_nav/send_goals_launch_file"
-         value="/launch/include/send_goals_obstacle.launch"
+         value="$(find outdoor_waypoint_nav)/launch/include/send_goals_obstacle.launch"
          type="string" />
 
   <!-- K-obstacle owns the clean GNSS stream consumed by Terminal 1. -->
@@ -30,11 +30,16 @@
         output="screen" />
 
   <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="joy_control_launch"
+         value="$(find outdoor_waypoint_nav)/launch/outdoor/joy_launch_control_obstacle.launch" />
     <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
     <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
     <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
     <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
     <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <!-- Defer loading because this file can be empty while LB/l collects it. -->
+    <arg name="evaluation_defer_waypoint_load" value="true" />
+    <arg name="evaluation_start_on_waypoint_index_zero" value="true" />
     <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
     <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
     <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />

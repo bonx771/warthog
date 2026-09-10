@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="input_topic" default="/rslidar_points" />
+  <arg name="obstacle_topic" default="/outdoor_waypoint_nav/obstacle_points_obstacle" />
+  <arg name="clearing_topic" default="/outdoor_waypoint_nav/clearing_points_obstacle" />
+  <arg name="enable_topic" default="/outdoor_waypoint_nav/lidar_costmap_enabled_obstacle" />
+
+  <node pkg="outdoor_waypoint_nav"
+        type="lidar_preprocess_obstacle.py"
+        name="lidar_preprocess_obstacle"
+        output="screen">
+    <param name="input_topic" value="$(arg input_topic)" />
+    <param name="obstacle_topic" value="$(arg obstacle_topic)" />
+    <param name="clearing_topic" value="$(arg clearing_topic)" />
+    <param name="enable_topic" value="$(arg enable_topic)" />
+
+    <!-- Real vehicle: 1.52 x 1.38 x 0.83 m.  The LiDAR optical origin is
+         centered and 0.40 m above the 0.83 m vehicle top. -->
+    <param name="ugv_length" value="1.52" />
+    <param name="ugv_width" value="1.38" />
+    <param name="ugv_height" value="0.83" />
+    <param name="lidar_height_above_ground" value="1.23" />
+    <param name="self_filter_padding" value="0.08" />
+
+    <!-- Detect obstacles intersecting the complete vehicle + LiDAR envelope,
+         ignore flat ground below 8 cm, and keep 10 cm above the LiDAR. -->
+    <param name="min_obstacle_height" value="0.08" />
+    <param name="max_obstacle_height" value="1.33" />
+    <param name="min_range" value="0.50" />
+    <param name="max_range" value="15.0" />
+    <param name="marking_leaf_size" value="0.08" />
+    <param name="clearing_leaf_size" value="0.12" />
+
+    <!-- Instantaneous dynamic-obstacle map.  Every new cloud raytraces the
+         obstacle endpoints from the two preceding frames as free space, then
+         marks only obstacles visible in the current frame. -->
+    <param name="clear_previous_obstacles" value="true" />
+    <param name="previous_clear_frames" value="2" />
+    <!-- VoxelLayer stops clearing 2 cells before every endpoint. The global
+         obstacle costmap has 0.20 m cells, therefore 0.60 m crosses the old
+         voxel with 0.20 m remaining while staying inside raytrace_range. -->
+    <param name="previous_clear_extension" value="0.60" />
+    <!-- Keep old endpoints in odom, not in the moving LiDAR frame, so they
+         are cleared at the correct world position while the UGV is moving. -->
+    <param name="clearing_fixed_frame" value="odom" />
+    <param name="transform_timeout" value="0.05" />
+
+    <!-- Ground-plane estimation for uneven outdoor terrain. -->
+    <param name="ground_candidate_band" value="0.60" />
+    <param name="ground_fit_min_range" value="0.80" />
+    <param name="ground_fit_max_range" value="12.0" />
+    <param name="ground_distance_threshold" value="0.07" />
+    <param name="max_ground_tilt_deg" value="18.0" />
+    <param name="ground_origin_tolerance" value="0.45" />
+    <param name="ransac_iterations" value="80" />
+    <param name="max_ground_candidates" value="12000" />
+    <param name="min_ground_inliers" value="300" />
+  </node>
+</launch>

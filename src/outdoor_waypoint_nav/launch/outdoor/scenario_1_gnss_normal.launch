@@ -19,6 +19,16 @@
          value="$(arg waypoint_file)"
          type="string" />
 
+  <!-- Always select the original direct-pursuit sender.  Reset this explicitly
+       because a previous obstacle scenario can leave its global launch-file
+       override on the ROS parameter server. -->
+  <param name="/outdoor_waypoint_nav/send_goals_launch_file"
+         value="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch"
+         type="string" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="true"
+         type="bool" />
+
   <node pkg="topic_tools"
         type="relay"
         name="scenario_1_clean_gps_to_navsat"
@@ -35,6 +45,7 @@
     <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
     <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
     <arg name="trajectory_scenario_name" value="scenario_1_gnss_normal" />
-    <arg name="trajectory_scenario_metadata" value="selected_gnss=raw_clean" />
+    <arg name="trajectory_scenario_metadata"
+         value="selected_gnss=raw_clean;navigation=direct_waypoint" />
   </include>
 </launch>

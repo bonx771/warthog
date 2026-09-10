@@ -1,0 +1,14 @@
+global_frame: map
+robot_base_frame: base_link
+update_frequency: 5.0
+# Dijkstra consumes the internal 5 Hz costmap. RViz only needs a 2 Hz copy.
+publish_frequency: 2.0
+# A 120 m rolling window keeps a waypoint 40-50 m away clear of the lethal
+# outline and leaves enough room for the full UGV footprint at the goal.
+width: 120.0
+height: 120.0
+resolution: 0.20
+static_map: false
+rolling_window: true
+transform_tolerance: 1.0
+track_unknown_space: false

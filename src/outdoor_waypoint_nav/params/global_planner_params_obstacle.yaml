@@ -1,0 +1,22 @@
+# Shortest-path profile used only by move_base_nav_obstacle.launch.
+GlobalPlanner:
+  # Dijkstra builds a complete, smooth potential field for GradientPath.
+  # A* + QuadraticCalculator + GradientPath can find a legal potential but
+  # fail while tracing it back, which makes move_base return an empty plan.
+  # With no obstacle this profile stays within about 0.20 m of the direct
+  # waypoint line; obstacle costs still bend it only when clearance requires.
+  use_dijkstra: true
+  use_quadratic: true
+  use_grid_path: false
+  old_navfn_behavior: false
+
+  lethal_cost: 253
+  neutral_cost: 50
+  cost_factor: 0.50
+  allow_unknown: true
+  default_tolerance: 0.30
+  outline_map: true
+
+  orientation_mode: 1
+  orientation_window_size: 3
+  publish_potential: false

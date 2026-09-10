@@ -1,0 +1,12 @@
+global_frame: odom
+robot_base_frame: base_link
+update_frequency: 10.0
+# Navigation still updates at 10 Hz; publishing at 5 Hz only reduces RViz and
+# network overhead and does not slow obstacle reaction.
+publish_frequency: 5.0
+width: 10.0
+height: 10.0
+resolution: 0.10
+static_map: false
+rolling_window: true
+transform_tolerance: 1.0

@@ -1,24 +1,32 @@
 <?xml version="1.0"?>
 
 <!--
-  Outdoor waypoint navigation with RoboSense LiDAR obstacle data enabled.
+  Outdoor waypoint navigation with RoboSense 3-D obstacle data enabled.
 
-  Start this launch in Terminal 1, then start the desired scenario launch in
-  Terminal 2 (for example: scenario_1_gnss_normal.launch).  It has the same
-  localisation, move_base, command relay and RViz flow as
-  outdoor_waypoint_nav.launch; the only behavioural difference is that LiDAR
-  is enabled by default, so move_base receives /front/scan for its costmaps.
-  The RoboSense driver publishes /rslidar_points; this launch converts that
-  PointCloud2 stream to the LaserScan consumed by the existing costmaps.
+  Start this launch in Terminal 1, then start scenario_obstacle.launch in
+  Terminal 2. The RoboSense driver publishes /rslidar_points; this stream is
+  ground/self filtered and consumed directly by dedicated 3-D VoxelLayers.
+  No launch/config used by Scenarios 1-4 is loaded by this obstacle flow.
 -->
 <launch>
 
     <arg name="launch_rviz" default="true" />
-    <arg name="rviz_config" default="$(dirname)/../../rviz_config/real_lidar.rviz" />
+    <arg name="rviz_config" default="$(dirname)/../../rviz_config/real_lidar_obstacle.rviz" />
     <arg name="use_lidar" default="true" />
     <arg name="lidar_cloud_topic" default="/rslidar_points" />
+    <arg name="lidar_obstacle_topic"
+         default="/outdoor_waypoint_nav/obstacle_points_obstacle" />
+    <arg name="lidar_clearing_topic"
+         default="/outdoor_waypoint_nav/clearing_points_obstacle" />
     <arg name="lidar_scan_topic" default="/front/scan" />
+    <arg name="lidar_costmap_enable_topic"
+         default="/outdoor_waypoint_nav/lidar_costmap_enabled_obstacle" />
+    <arg name="navigation_ready_topic"
+         default="/outdoor_waypoint_nav/navigation_ready_obstacle" />
     <arg name="lidar_frame" default="rslidar" />
+    <!-- base_link is approximately 0.30 m above ground; LiDAR is 1.23 m
+         above ground, so its nominal mounting height is 0.93 m here. -->
+    <arg name="lidar_mount_z" default="0.93" />
     <arg name="use_gps" default="true" />
     <!-- Each K1-K4 launch in Terminal 2 owns exactly one publisher for this
          selected GNSS stream. T1 only consumes it. -->
@@ -33,7 +41,7 @@
     <node pkg="tf2_ros"
           type="static_transform_publisher"
           name="base_link_to_lidar"
-          args="0.4 0 0.3 0 0 0 base_link $(arg lidar_frame)" />
+          args="0 0 $(arg lidar_mount_z) 0 0 0 base_link $(arg lidar_frame)" />
 
     <node pkg="tf2_ros"
           type="static_transform_publisher"
@@ -43,24 +51,33 @@
     <!-- RoboSense driver: publishes PointCloud2 on /rslidar_points. -->
     <include if="$(arg use_lidar)" file="$(find rslidar_sdk)/launch/start.launch" />
 
-    <!-- Convert RoboSense PointCloud2 to the LaserScan used by move_base. -->
+    <include if="$(arg use_lidar)"
+             file="$(find outdoor_waypoint_nav)/launch/include/lidar_preprocess_obstacle.launch">
+      <arg name="input_topic" value="$(arg lidar_cloud_topic)" />
+      <arg name="obstacle_topic" value="$(arg lidar_obstacle_topic)" />
+      <arg name="clearing_topic" value="$(arg lidar_clearing_topic)" />
+      <arg name="enable_topic" value="$(arg lidar_costmap_enable_topic)" />
+    </include>
+
+    <!-- Diagnostic 2-D projection for the existing RViz LaserScan display.
+         Navigation itself consumes the filtered PointCloud2 through VoxelLayer. -->
     <node if="$(arg use_lidar)"
           pkg="pointcloud_to_laserscan"
           type="pointcloud_to_laserscan_node"
-          name="rslidar_to_front_scan"
+          name="obstacle_cloud_to_front_scan"
           output="screen"
-          args="cloud_in:=$(arg lidar_cloud_topic) scan:=$(arg lidar_scan_topic)">
-        <param name="target_frame" value="$(arg lidar_frame)" />
-        <param name="transform_tolerance" value="0.05" />
-        <param name="min_height" value="0.0" />
-        <param name="max_height" value="1.0" />
-        <param name="angle_min" value="-3.14159" />
-        <param name="angle_max" value="3.14159" />
-        <param name="angle_increment" value="0.0058" />
-        <param name="scan_time" value="0.0333333" />
-        <param name="range_min" value="0.5" />
-        <param name="range_max" value="30.0" />
-        <param name="use_inf" value="true" />
+          args="cloud_in:=$(arg lidar_obstacle_topic) scan:=$(arg lidar_scan_topic)">
+      <param name="target_frame" value="$(arg lidar_frame)" />
+      <param name="transform_tolerance" value="0.05" />
+      <param name="min_height" value="-2.0" />
+      <param name="max_height" value="1.0" />
+      <param name="angle_min" value="-3.14159" />
+      <param name="angle_max" value="3.14159" />
+      <param name="angle_increment" value="0.0058" />
+      <param name="scan_time" value="0.10" />
+      <param name="range_min" value="0.5" />
+      <param name="range_max" value="15.0" />
+      <param name="use_inf" value="true" />
     </node>
 
     <include file="$(dirname)/../include/localization_run.launch">
@@ -70,47 +87,63 @@
         <arg name="ekf_map_params" value="$(arg ekf_map_params)" />
     </include>
 
-    <!-- With use_lidar=true, move_base loads obstacle costmap parameters and
-         subscribes to /front/scan. -->
-    <include file="$(find warthog_slam)/launch/move_base_nav.launch">
-      <arg name="use_lidar" value="$(arg use_lidar)" />
-      <arg name="cmd_vel_topic" value="/cmd_vel" />
+    <!-- Obstacle-only startup interlock. It prevents incorrectly transformed
+         startup clouds from entering VoxelLayer, then clears/rebuilds both
+         costmaps after IMU, EKFs and map/odom TF yaw are stable. -->
+    <node pkg="outdoor_waypoint_nav"
+          type="localization_guard_obstacle.py"
+          name="localization_guard_obstacle"
+          output="screen">
+      <param name="imu_topic" value="/imu/data_new" />
+      <param name="odom_topic"
+             value="/outdoor_waypoint_nav/odometry/filtered" />
+      <param name="map_odom_topic"
+             value="/outdoor_waypoint_nav/odometry/filtered_map" />
+      <param name="cloud_enable_topic" value="$(arg lidar_costmap_enable_topic)" />
+      <param name="navigation_ready_topic" value="$(arg navigation_ready_topic)" />
+      <param name="clear_costmaps_service" value="/move_base/clear_costmaps" />
+      <!-- The real INS applies its large initial yaw correction about 10 s
+           after startup. Keep the costmap locked past that deterministic jump. -->
+      <param name="minimum_startup_duration" value="12.0" />
+      <param name="stability_duration" value="4.0" />
+      <param name="yaw_tolerance_deg" value="2.0" />
+      <param name="sensor_timeout" value="0.5" />
+      <param name="max_linear_speed" value="0.05" />
+      <param name="max_angular_speed" value="0.05" />
+      <param name="costmap_warmup_duration" value="1.0" />
+      <param name="jump_angle_deg" value="5.0" />
+      <param name="jump_rate_deg_per_sec" value="45.0" />
+    </node>
+
+    <!-- Dedicated obstacle stack: filtered PointCloud2 -> VoxelLayer. -->
+    <include file="$(find outdoor_waypoint_nav)/launch/include/move_base_nav_obstacle.launch">
+      <arg name="cmd_vel_topic" value="/cmd_vel_raw_obstacle" />
     </include>
 
-    <!-- Narrow-passage profile, matched to outdoor_waypoint_obstacle_sim.
-         The 1.50 m footprint plus 0.02 m padding gives an approximately
-         0.50 m preferred body clearance at a 1.30 m inflation radius.
-         Cost decay and low crawl speed let the local planner select a valid
-         slow trajectory through a narrow, LiDAR-observed gap. -->
-    <!-- Global costmap: tạo vùng đệm đến 1.30 m quanh vật cản để planner
-         chọn đường dài hạn với khoảng hở thân xe mục tiêu khoảng 50 cm. -->
-    <param name="/move_base/global_costmap/inflater_layer/inflation_radius"
-           value="1.30" type="double" />
-    <!-- Global costmap: cost giảm nhanh khi ra xa vật cản; giúp đường hẹp
-         vẫn được xem là khả thi thay vì bị phạt cost trên diện quá rộng. -->
-    <param name="/move_base/global_costmap/inflater_layer/cost_scaling_factor"
-           value="3.0" type="double" />
-    <!-- Local costmap: vùng đệm dùng cho quỹ đạo ngay trước robot, giữ mục
-         tiêu hở thân xe khoảng 50 cm khi luồn qua vật cản. -->
-    <param name="/move_base/local_costmap/inflater_layer/inflation_radius"
-           value="1.30" type="double" />
-    <!-- Local costmap: cost giảm nhanh theo khoảng cách để local planner vẫn
-         tìm được trajectory hợp lệ trong lối hẹp. -->
-    <param name="/move_base/local_costmap/inflater_layer/cost_scaling_factor"
-           value="3.0" type="double" />
-    <!-- Tốc độ tiến nhỏ nhất 0.15 m/s: cho phép robot bò chậm khi cua hoặc
-         đi qua khe hẹp, thay vì bị buộc phải chọn lệnh tiến quá nhanh. -->
-    <param name="/move_base/TrajectoryPlannerROS/min_vel_x"
-           value="0.15" type="double" />
-    <!-- Trọng số phạt vật cản của local planner: giảm còn 0.25 để robot chấp
-         nhận đi gần vùng inflation hơn khi cần, nhưng vẫn tránh ô va chạm. -->
-    <param name="/move_base/TrajectoryPlannerROS/occdist_scale"
-           value="0.25" type="double" />
+    <!-- Smooth normal move_base commands before forwarding them to the UGV.
+         Explicit zero commands remain immediate for obstacle/operator safety. -->
+    <node pkg="outdoor_waypoint_nav"
+          type="cmd_vel_smoother_obstacle.py"
+          name="cmd_vel_smoother_obstacle"
+          output="screen">
+      <param name="input_topic" value="/cmd_vel_raw_obstacle" />
+      <param name="output_topic" value="/cmd_vel" />
+      <param name="frequency" value="30.0" />
+      <param name="linear_accel" value="0.50" />
+      <param name="linear_decel" value="0.90" />
+      <param name="angular_accel" value="0.70" />
+      <param name="angular_decel" value="1.00" />
+      <param name="max_linear" value="0.70" />
+      <param name="max_angular" value="0.35" />
+      <param name="command_timeout" value="0.50" />
+      <param name="smooth_zero_commands" value="true" />
+      <param name="navigation_ready_topic" value="$(arg navigation_ready_topic)" />
+      <param name="require_navigation_ready" value="true" />
+    </node>
 
-    <node pkg="topic_tools"
-          type="relay"
-          name="cmd_vel_to_warthog_controller"
-          args="/cmd_vel /warthog_velocity_controller/cmd_vel" />
+    <!-- Do not add another /cmd_vel -> controller relay here. The Warthog
+         already consumes /cmd_vel directly and its onboard twist_mux also
+         forwards that topic, so the old relay delivered duplicate commands. -->
 
     <node if="$(arg launch_rviz)"
           name="rviz"

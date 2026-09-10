@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="odom_topic" default="/outdoor_waypoint_nav/odometry/filtered_map" />
+  <arg name="cmd_vel_topic" default="/cmd_vel" />
+
+  <!-- Completely separate move_base configuration for the 3-D obstacle flow. -->
+  <node pkg="move_base"
+        type="move_base"
+        respawn="false"
+        name="move_base"
+        output="screen">
+    <rosparam file="$(find outdoor_waypoint_nav)/params/costmap_common_params_obstacle.yaml"
+              command="load" ns="global_costmap" />
+    <rosparam file="$(find outdoor_waypoint_nav)/params/costmap_common_params_obstacle.yaml"
+              command="load" ns="local_costmap" />
+    <rosparam file="$(find outdoor_waypoint_nav)/params/global_costmap_params_obstacle.yaml"
+              command="load" ns="global_costmap" />
+    <rosparam file="$(find outdoor_waypoint_nav)/params/local_costmap_params_obstacle.yaml"
+              command="load" ns="local_costmap" />
+    <rosparam file="$(find outdoor_waypoint_nav)/params/base_local_planner_params_obstacle.yaml"
+              command="load" />
+    <rosparam file="$(find outdoor_waypoint_nav)/params/global_planner_params_obstacle.yaml"
+              command="load" />
+    <rosparam file="$(find outdoor_waypoint_nav)/params/move_base_params_obstacle.yaml"
+              command="load" />
+
+    <param name="base_global_planner"
+           value="global_planner/GlobalPlanner" />
+    <param name="base_local_planner"
+           value="base_local_planner/TrajectoryPlannerROS" />
+
+    <remap from="odom" to="$(arg odom_topic)" />
+    <remap from="cmd_vel" to="$(arg cmd_vel_topic)" />
+    <!-- Keep the existing shared RViz display working without editing its
+         /move_base/NavfnROS/plan topic. -->
+    <remap from="/move_base/GlobalPlanner/plan"
+           to="/move_base/NavfnROS/plan" />
+  </node>
+</launch>

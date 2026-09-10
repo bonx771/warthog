@@ -9,7 +9,7 @@
 -->
 <launch>
 
-  <arg name="coordinates_file" default="/waypoint_files/points_outdoor.txt" />
+  <arg name="coordinates_file" default="/waypoint_files/points_obstacle.txt" />
 
   <include file="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch">
     <arg name="coordinates_file" value="$(arg coordinates_file)" />

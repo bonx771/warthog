@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Obstacle-only collection; never truncates points_outdoor.txt. -->
+  <arg name="collect_button_num" default="3" />
+  <arg name="collect_button_sym" default="Y" />
+  <arg name="end_button_num" default="6" />
+  <arg name="end_button_sym" default="BACK" />
+  <arg name="coordinates_file" default="/waypoint_files/points_obstacle.txt" />
+
+  <node ns="/outdoor_waypoint_nav" pkg="outdoor_waypoint_nav"
+        type="filtered_collect_gps_waypoints.py"
+        name="filtered_collect_gps_waypoints" output="screen" />
+
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg coordinates_file)" type="string" />
+  <param name="/outdoor_waypoint_nav/collect_button_num"
+         value="$(arg collect_button_num)" type="int" />
+  <param name="/outdoor_waypoint_nav/end_button_num"
+         value="$(arg end_button_num)" type="int" />
+  <param name="/outdoor_waypoint_nav/collect_button_sym"
+         value="$(arg collect_button_sym)" type="string" />
+  <param name="/outdoor_waypoint_nav/end_button_sym"
+         value="$(arg end_button_sym)" type="string" />
+  <param name="/outdoor_waypoint_nav/gps_topic"
+         value="/outdoor_waypoint_nav/gps/filtered" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_frame"
+         value="map" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_topic"
+         value="/outdoor_waypoint_nav/collected_waypoints" type="string" />
+  <param name="/outdoor_waypoint_nav/waypoint_marker_scale"
+         value="0.7" type="double" />
+  <param name="/outdoor_waypoint_nav/waypoint_sample_duration"
+         value="5.0" type="double" />
+  <param name="/outdoor_waypoint_nav/waypoint_min_samples"
+         value="5" type="int" />
+  <param name="/outdoor_waypoint_nav/waypoint_min_distance_m"
+         value="1.0" type="double" />
+</launch>

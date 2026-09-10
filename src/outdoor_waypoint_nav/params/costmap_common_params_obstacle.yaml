@@ -1,0 +1,62 @@
+# Parameters used only by move_base_nav_obstacle.launch.
+obstacle_range: 12.0
+raytrace_range: 15.0
+
+# Measured UGV footprint: 1.52 x 1.38 m. Padding adds a 5 cm safety margin.
+footprint: [[-0.76, -0.69], [-0.76, 0.69], [0.76, 0.69], [0.76, -0.69]]
+footprint_padding: 0.05
+
+plugins:
+  - {name: obstacles_3d_layer, type: "costmap_2d::VoxelLayer"}
+  - {name: inflater_layer, type: "costmap_2d::InflationLayer"}
+
+obstacles_3d_layer:
+  enabled: true
+  footprint_clearing_enabled: true
+  # Debug voxel publication is expensive and is not used for planning.
+  publish_voxel_map: false
+
+  # base_link is about 0.30 m above ground and rslidar is 0.93 m above
+  # base_link. The grid includes ground and the full vehicle + LiDAR envelope.
+  origin_z: -0.30
+  z_resolution: 0.10
+  z_voxels: 16
+  unknown_threshold: 15
+  mark_threshold: 0
+  max_obstacle_height: 1.20
+
+  observation_sources: marking_cloud clearing_cloud
+  marking_cloud:
+    sensor_frame: rslidar
+    data_type: PointCloud2
+    topic: /outdoor_waypoint_nav/obstacle_points_obstacle
+    marking: true
+    clearing: false
+    min_obstacle_height: -0.24
+    max_obstacle_height: 1.10
+    obstacle_range: 12.0
+    # Do not buffer old marking observations. lidar_preprocess_obstacle.py
+    # clears recent endpoints explicitly and this source marks only the latest
+    # received LiDAR snapshot.
+    observation_persistence: 0.0
+  clearing_cloud:
+    sensor_frame: rslidar
+    data_type: PointCloud2
+    topic: /outdoor_waypoint_nav/clearing_points_obstacle
+    marking: false
+    clearing: true
+    min_obstacle_height: -1.50
+    max_obstacle_height: 1.50
+    raytrace_range: 15.0
+    observation_persistence: 0.0
+
+inflater_layer:
+  # The exact 1.52 x 1.38 m footprint still performs hard collision checks.
+  # This smaller, faster-decaying soft field keeps paths close to the direct
+  # waypoint line instead of making a wide arc around every return.
+  inflation_radius: 1.10
+  cost_scaling_factor: 8.0
+
+lethal_cost_threshold: 100
+robot_base_frame: base_link
+transform_tolerance: 0.5

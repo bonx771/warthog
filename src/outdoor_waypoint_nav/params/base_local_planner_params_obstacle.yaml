@@ -1,0 +1,50 @@
+TrajectoryPlannerROS:
+  # The Warthog has a noticeable low-speed deadband.  With dwa=true and the
+  # old 0.40 m/s^2 acceleration window, odometry stayed near zero and the
+  # planner could only sample 0.05-0.10 m/s forever.  Rollout mode evaluates
+  # the complete useful velocity range; cmd_vel_smoother_obstacle still
+  # enforces gradual acceleration on the real vehicle.
+  acc_lim_x: 0.80
+  acc_lim_theta: 0.80
+
+  max_vel_x: 0.70
+  min_vel_x: 0.18
+  max_vel_theta: 0.35
+  min_vel_theta: -0.35
+  min_in_place_vel_theta: 0.12
+
+  holonomic_robot: false
+  escape_vel: 0.0
+
+  yaw_goal_tolerance: 3.14
+  xy_goal_tolerance: 0.40
+  latch_xy_goal_tolerance: true
+
+  # A shorter rollout and fewer samples reduce CPU load while retaining enough
+  # resolution for the 1.52 x 1.38 m footprint and 10 cm local costmap.
+  sim_time: 1.8
+  sim_granularity: 0.05
+  angular_sim_granularity: 0.04
+  vx_samples: 10
+  vtheta_samples: 24
+  controller_frequency: 10.0
+
+  meter_scoring: true
+  # These are the scoring names actually consumed by TrajectoryPlannerROS.
+  # Favor the straight global path, while collision safety remains a hard
+  # footprint check. occdist_scale only controls extra soft clearance.
+  pdist_scale: 1.20
+  gdist_scale: 0.80
+  occdist_scale: 0.05
+  heading_scoring: false
+  heading_scoring_timestep: 0.80
+  heading_lookahead: 1.00
+  dwa: false
+  simple_attractor: false
+  prune_plan: true
+  stop_time_buffer: 0.35
+  publish_cost_grid_pc: false
+
+  oscillation_reset_dist: 0.05
+  escape_reset_dist: 0.10
+  escape_reset_theta: 0.10
