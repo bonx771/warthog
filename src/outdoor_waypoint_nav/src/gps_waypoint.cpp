@@ -1608,127 +1608,155 @@ int main(int argc, char** argv)
             map_point.point.x,
             map_point.point.y);
 
-        int return_recovery_attempt_count = 0;
         bool returned_to_start = false;
-        while(ros::ok())
+        if(direct_waypoint_drive_enabled)
         {
-            double current_robot_yaw = 0.0;
-            const bool have_current_yaw = tryGetRobotYawInFrame(tf_listener, goal_frame, current_robot_yaw);
-            move_base_msgs::MoveBaseGoal return_goal = buildGoal(
-                true,
-                map_return_prev,
+            ac.cancelAllGoals();
+            ROS_INFO("Returning to waypoint 1/%d with direct waypoint drive.", totalWaypoints);
+            returned_to_start = driveDirectToWaypoint(
+                tf_listener,
+                pubRecoveryCmd,
+                pubWaypointMarkers,
                 map_point,
-                true,
-                map_next,
-                false,
-                false,
-                have_current_yaw,
-                current_robot_yaw);
-            ROS_INFO("Sending return goal to waypoint 1/%d", totalWaypoints);
-            ac.sendGoal(return_goal);
-            last_auto_replan_time = ros::Time::now();
+                1,
+                totalWaypoints);
+
+            if(returned_to_start)
+            {
+                ROS_INFO("Returned to waypoint 1/%d with direct waypoint drive.", totalWaypoints);
+            }
+            else
+            {
+                ROS_ERROR("Direct waypoint drive failed while returning to waypoint 1/%d.", totalWaypoints);
+                std_msgs::Bool node_ended;
+                node_ended.data = false;
+                pubWaypointNodeEnded.publish(node_ended);
+                ros::shutdown();
+            }
+        }
+        else
+        {
+            int return_recovery_attempt_count = 0;
             while(ros::ok())
             {
-                ros::spinOnce();
-                publishPreferredAvoidanceTurn(
-                    pubPreferredAvoidanceTurn,
-                    tf_listener,
+                double current_robot_yaw = 0.0;
+                const bool have_current_yaw = tryGetRobotYawInFrame(tf_listener, goal_frame, current_robot_yaw);
+                move_base_msgs::MoveBaseGoal return_goal = buildGoal(
+                    true,
+                    map_return_prev,
                     map_point,
+                    true,
                     map_next,
                     false,
-                    false);
-
-                if(consumeSafetyReplanRequest())
+                    false,
+                    have_current_yaw,
+                    current_robot_yaw);
+                ROS_INFO("Sending return goal to waypoint 1/%d", totalWaypoints);
+                ac.sendGoal(return_goal);
+                last_auto_replan_time = ros::Time::now();
+                while(ros::ok())
                 {
-                    double replan_robot_yaw = 0.0;
-                    const bool have_replan_robot_yaw = tryGetRobotYawInFrame(tf_listener, goal_frame, replan_robot_yaw);
-                    move_base_msgs::MoveBaseGoal replanned_return_goal = buildGoal(
-                        true,
-                        map_return_prev,
+                    ros::spinOnce();
+                    publishPreferredAvoidanceTurn(
+                        pubPreferredAvoidanceTurn,
+                        tf_listener,
                         map_point,
-                        true,
                         map_next,
                         false,
-                        false,
-                        have_replan_robot_yaw,
-                        replan_robot_yaw);
-                    ac.sendGoal(replanned_return_goal);
-                    last_auto_replan_time = ros::Time::now();
-                    ROS_WARN(
-                        "Safety avoidance requested replan. Resent return goal to waypoint 1/%d from the current robot pose.",
-                        totalWaypoints);
-                }
-                else if(shouldAutoReplanCurrentGoal())
-                {
-                    double replan_robot_yaw = 0.0;
-                    const bool have_replan_robot_yaw = tryGetRobotYawInFrame(tf_listener, goal_frame, replan_robot_yaw);
-                    move_base_msgs::MoveBaseGoal refreshed_return_goal = buildGoal(
-                        true,
-                        map_return_prev,
-                        map_point,
-                        true,
-                        map_next,
-                        false,
-                        false,
-                        have_replan_robot_yaw,
-                        replan_robot_yaw);
-                    ac.sendGoal(refreshed_return_goal);
-                    ROS_INFO_THROTTLE(
-                        5.0,
-                        "Refreshing return goal to waypoint 1/%d so move_base redraws the plan from the current robot pose.",
-                        totalWaypoints);
+                        false);
+
+                    if(consumeSafetyReplanRequest())
+                    {
+                        double replan_robot_yaw = 0.0;
+                        const bool have_replan_robot_yaw = tryGetRobotYawInFrame(tf_listener, goal_frame, replan_robot_yaw);
+                        move_base_msgs::MoveBaseGoal replanned_return_goal = buildGoal(
+                            true,
+                            map_return_prev,
+                            map_point,
+                            true,
+                            map_next,
+                            false,
+                            false,
+                            have_replan_robot_yaw,
+                            replan_robot_yaw);
+                        ac.sendGoal(replanned_return_goal);
+                        last_auto_replan_time = ros::Time::now();
+                        ROS_WARN(
+                            "Safety avoidance requested replan. Resent return goal to waypoint 1/%d from the current robot pose.",
+                            totalWaypoints);
+                    }
+                    else if(shouldAutoReplanCurrentGoal())
+                    {
+                        double replan_robot_yaw = 0.0;
+                        const bool have_replan_robot_yaw = tryGetRobotYawInFrame(tf_listener, goal_frame, replan_robot_yaw);
+                        move_base_msgs::MoveBaseGoal refreshed_return_goal = buildGoal(
+                            true,
+                            map_return_prev,
+                            map_point,
+                            true,
+                            map_next,
+                            false,
+                            false,
+                            have_replan_robot_yaw,
+                            replan_robot_yaw);
+                        ac.sendGoal(refreshed_return_goal);
+                        ROS_INFO_THROTTLE(
+                            5.0,
+                            "Refreshing return goal to waypoint 1/%d so move_base redraws the plan from the current robot pose.",
+                            totalWaypoints);
+                    }
+
+                    if(ac.waitForResult(ros::Duration(0.1)))
+                    {
+                        break;
+                    }
                 }
 
-                if(ac.waitForResult(ros::Duration(0.1)))
+                if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
                 {
+                    ROS_INFO("Returned to waypoint 1/%d", totalWaypoints);
+                    returned_to_start = true;
                     break;
                 }
-            }
 
-            if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
-            {
-                ROS_INFO("Returned to waypoint 1/%d", totalWaypoints);
-                returned_to_start = true;
-                break;
-            }
+                const std::string move_base_text = ac.getState().getText();
+                const bool oscillation_abort =
+                    (ac.getState() == actionlib::SimpleClientGoalState::ABORTED) &&
+                    (move_base_text.find("oscillat") != std::string::npos);
 
-            const std::string move_base_text = ac.getState().getText();
-            const bool oscillation_abort =
-                (ac.getState() == actionlib::SimpleClientGoalState::ABORTED) &&
-                (move_base_text.find("oscillat") != std::string::npos);
-
-            if(oscillation_recovery_enabled &&
-               oscillation_abort &&
-               return_recovery_attempt_count < oscillation_recovery_max_attempts)
-            {
-                return_recovery_attempt_count++;
-                ROS_WARN(
-                    "Return to waypoint 1/%d aborted due to oscillation. Starting custom recovery attempt %d/%d.",
-                    totalWaypoints,
-                    return_recovery_attempt_count,
-                    oscillation_recovery_max_attempts);
-                ac.cancelAllGoals();
-                const bool recovery_ok = performOscillationRecovery(tf_listener, pubRecoveryCmd, return_recovery_attempt_count);
-                if(recovery_ok)
+                if(oscillation_recovery_enabled &&
+                   oscillation_abort &&
+                   return_recovery_attempt_count < oscillation_recovery_max_attempts)
                 {
-                    ROS_INFO("Custom oscillation recovery finished. Retrying return to waypoint 1/%d.", totalWaypoints);
-                    continue;
+                    return_recovery_attempt_count++;
+                    ROS_WARN(
+                        "Return to waypoint 1/%d aborted due to oscillation. Starting custom recovery attempt %d/%d.",
+                        totalWaypoints,
+                        return_recovery_attempt_count,
+                        oscillation_recovery_max_attempts);
+                    ac.cancelAllGoals();
+                    const bool recovery_ok = performOscillationRecovery(tf_listener, pubRecoveryCmd, return_recovery_attempt_count);
+                    if(recovery_ok)
+                    {
+                        ROS_INFO("Custom oscillation recovery finished. Retrying return to waypoint 1/%d.", totalWaypoints);
+                        continue;
+                    }
+                    ROS_WARN("Custom oscillation recovery did not complete cleanly during return-to-start. Falling back to normal failure handling.");
                 }
-                ROS_WARN("Custom oscillation recovery did not complete cleanly during return-to-start. Falling back to normal failure handling.");
+
+                ROS_ERROR(
+                    "Failed to return to waypoint 1/%d. move_base state: %s. %s",
+                    totalWaypoints,
+                    ac.getState().toString().c_str(),
+                    move_base_text.c_str());
+                ROS_ERROR("GPS waypoint return-to-start unreachable.");
+                ROS_INFO("Exiting node...");
+
+                std_msgs::Bool node_ended;
+                node_ended.data = true;
+                pubWaypointNodeEnded.publish(node_ended);
+                ros::shutdown();
             }
-
-            ROS_ERROR(
-                "Failed to return to waypoint 1/%d. move_base state: %s. %s",
-                totalWaypoints,
-                ac.getState().toString().c_str(),
-                move_base_text.c_str());
-            ROS_ERROR("GPS waypoint return-to-start unreachable.");
-            ROS_INFO("Exiting node...");
-
-            std_msgs::Bool node_ended;
-            node_ended.data = true;
-            pubWaypointNodeEnded.publish(node_ended);
-            ros::shutdown();
         }
 
         if(!returned_to_start)

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Scenario 5 keeps the obstacle-free direct-pursuit controller used by
+       Scenarios 1-4 and finishes at the final waypoint. -->
+  <arg name="coordinates_file" default="/waypoint_files/points_sim.txt" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch">
+    <arg name="coordinates_file" value="$(arg coordinates_file)" />
+  </include>
+
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="true"
+         type="bool" />
+  <param name="/outdoor_waypoint_nav/return_to_start_enabled"
+         value="false"
+         type="bool" />
+  <!-- Direct-pursuit arrival radius used to advance to the next waypoint. -->
+  <param name="/outdoor_waypoint_nav/direct_waypoint_goal_tolerance"
+         value="0.4"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance"
+         value="0.138"
+         type="double" />
+</launch>

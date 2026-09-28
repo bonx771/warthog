@@ -1,0 +1,4 @@
+estimator,reference,source_csv,aligned_samples,evaluation_duration_s,rmse_x_m,rmse_y_m,position_rmse_m,position_mae_m,maximum_position_error_m,final_position_error_m,trajectory_length_m
+Global EKF,raw simulation GNSS (pre-noise),plot_data/global_ekf.csv,8400,383.460000,0.442346,0.292583,0.530354,0.351934,2.567831,0.054488,300.381317
+Local EKF,raw simulation GNSS (pre-noise),plot_data/local_ekf.csv,8428,383.680000,4.563108,1.899356,4.942621,4.628607,6.224120,5.438575,300.664954
+Encoder odometry,raw simulation GNSS (pre-noise),plot_data/encoder_odometry.csv,8431,384.160000,42.570919,45.838586,62.557646,56.117862,104.469864,81.802334,300.657433

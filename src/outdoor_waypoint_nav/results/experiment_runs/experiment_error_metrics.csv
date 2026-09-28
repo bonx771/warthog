@@ -1,0 +1,8 @@
+order,experiment_group,condition,scenario,cte_samples,max_cte_m,cte_rmse_m,cte_mae_m,metric_frame,source_csv
+1,GNSS noise,Noise run 1,scenario_2_gnss_noise_1,1796,1.457421,0.553361,0.459528,utm,scenario_2_gnss_noise_1/reference_gnss.csv
+2,GNSS noise,Noise run 3,scenario_2_gnss_noise_3,1889,1.758476,0.809737,0.723033,utm,scenario_2_gnss_noise_3/reference_gnss.csv
+3,GNSS noise,Noise run 5,scenario_2_gnss_noise_5,1404,2.026733,0.981746,0.872674,utm,scenario_2_gnss_noise_5/reference_gnss.csv
+4,GNSS outage,Outage run 1,scenario_3_gnss_outage_1,1883,2.801805,0.640998,0.551789,utm,scenario_3_gnss_outage_1/reference_gnss.csv
+5,GNSS outage,Outage run 2,scenario_3_gnss_outage_2,1372,1.334745,0.688042,0.622797,utm,scenario_3_gnss_outage_2/reference_gnss.csv
+6,Obstacle avoidance,Obstacle run 1,scenario_obstacle_1,3777,4.615784,2.304129,1.737078,utm,scenario_obstacle_1/reference_gnss.csv
+7,Obstacle avoidance,Obstacle run 2,scenario_obstacle_2,2904,4.767179,2.312045,1.903562,utm,scenario_obstacle_2/reference_gnss.csv

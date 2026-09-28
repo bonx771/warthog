@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Scenario 5 keeps the obstacle-free direct-pursuit controller used by
+       Scenarios 1-4 and finishes at the final waypoint. -->
+  <arg name="coordinates_file" default="/waypoint_files/points_sim.txt" />
+
+  <!-- Scenario-5-only tuning. The shared 0.95 m/s and 0.35 rad/s defaults
+       produce a wide ~2.7 m nominal turn. These values reduce it to about
+       1 m and align in place only at genuinely sharp corners. -->
+  <arg name="direct_cruise_speed" default="0.90" />
+  <arg name="direct_min_speed" default="0.08" />
+  <arg name="direct_slow_radius" default="2.0" />
+  <arg name="direct_angular_kp" default="1.60" />
+  <arg name="direct_max_angular_speed" default="0.75" />
+  <arg name="direct_min_turn_speed" default="0.18" />
+  <arg name="direct_in_place_angle_threshold" default="1.10" />
+
+  <include file="$(find outdoor_waypoint_nav)/launch/include/send_goals.launch">
+    <arg name="coordinates_file" value="$(arg coordinates_file)" />
+  </include>
+
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="true"
+         type="bool" />
+  <param name="/outdoor_waypoint_nav/return_to_start_enabled"
+         value="false"
+         type="bool" />
+  <!-- Direct-pursuit arrival radius used to advance to the next waypoint. -->
+  <param name="/outdoor_waypoint_nav/direct_waypoint_goal_tolerance"
+         value="0.4"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_final_goal_tolerance"
+         value="0.138"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_cruise_speed"
+         value="$(arg direct_cruise_speed)"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_min_speed"
+         value="$(arg direct_min_speed)"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_slow_radius"
+         value="$(arg direct_slow_radius)"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_angular_kp"
+         value="$(arg direct_angular_kp)"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_max_angular_speed"
+         value="$(arg direct_max_angular_speed)"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_min_turn_speed"
+         value="$(arg direct_min_turn_speed)"
+         type="double" />
+  <param name="/outdoor_waypoint_nav/direct_waypoint_in_place_angle_threshold"
+         value="$(arg direct_in_place_angle_threshold)"
+         type="double" />
+</launch>

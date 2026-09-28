@@ -121,6 +121,9 @@ class ExperimentTrajectoryCsvLogger:
             "~run_directory_topic",
             "/outdoor_waypoint_nav/experiment_logger/run_directory",
         )
+        self.outage_active_topic = rospy.get_param(
+            "~outage_active_topic", "/outdoor_waypoint_nav/gnss_outage/active"
+        )
 
         self._lock = threading.RLock()
         self._run_active = False
@@ -192,7 +195,7 @@ class ExperimentTrajectoryCsvLogger:
             "/outdoor_waypoint_nav/gnss_noise/offset_enu", Vector3Stamped, self._noise_offset_cb, queue_size=20
         )
         rospy.Subscriber(
-            "/outdoor_waypoint_nav/gnss_outage/active", Bool, self._outage_active_cb, queue_size=10
+            self.outage_active_topic, Bool, self._outage_active_cb, queue_size=10
         )
         rospy.Subscriber(
             "/outdoor_waypoint_nav/gnss_outage/distance_m", Float64, self._outage_distance_cb, queue_size=20

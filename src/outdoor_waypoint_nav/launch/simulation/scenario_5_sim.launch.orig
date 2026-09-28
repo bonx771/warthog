@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+    Terminal 2, simulation Scenario 5. Start outdoor_waypoint_nav_sim.launch
+    first. Before r/RB starts waypoint following, GNSS remains continuously
+    available. Each press that starts a new waypoint run resets the cycle:
+    GNSS is available for 15 seconds, unavailable for the next 15 seconds, and
+    then continues alternating.
+
+    This scenario owns its gate and diagnostic topics. It deliberately does
+    not include or modify the gates used by Scenarios 2 and 3.
+  -->
+  <arg name="selected_fix_topic" default="/outdoor_waypoint_nav/gps/fix_selected" />
+  <arg name="noisy_fix_topic" default="/gps/fix_scenario_5_noisy" />
+  <arg name="gated_fix_topic" default="/gps/fix_scenario_5" />
+  <arg name="waypoint_file" default="/waypoint_files/points_sim.txt" />
+  <arg name="gps_on_duration_sec" default="15.0" />
+  <arg name="gps_off_duration_sec" default="15.0" />
+  <!-- AR(1) defaults below give approximately 0.40 m stationary standard
+       deviation on each horizontal axis. -->
+  <arg name="gps_noise_alpha" default="0.65" />
+  <arg name="gps_noise_innovation_sigma_m" default="0.87" />
+  <!-- Plot selected GPS fixes at up to 10 Hz instead of the shared 5 Hz
+       default. The source rate is not fabricated or interpolated. -->
+  <arg name="gps_plot_sample_min_period_sec" default="0.1" />
+  <arg name="evaluation_enabled" default="true" />
+  <arg name="evaluation_output_dir" default="/results/simulation" />
+  <arg name="evaluation_show_plot" default="false" />
+  <arg name="evaluation_finish_delay_sec" default="0.5" />
+  <arg name="trajectory_logging_enabled" default="true" />
+  <arg name="trajectory_output_dir" default="/results/simulation" />
+  <arg name="trajectory_run_naming_mode" default="sequential" />
+
+  <param name="/outdoor_waypoint_nav/coordinates_file"
+         value="$(arg waypoint_file)"
+         type="string" />
+  <!-- Match Scenarios 1-4: open-world direct waypoint driving, not the
+       move_base obstacle-avoidance sender used by scenario_obstacle_sim. -->
+  <param name="/outdoor_waypoint_nav/direct_waypoint_drive_enabled"
+         value="true"
+         type="bool" />
+
+  <!-- Add real measurement noise after r/RB starts the waypoint run. Before
+       index 0 arrives, this node passes the clean simulated fix through. -->
+  <include file="$(find outdoor_waypoint_nav)/launch/include/gnss_correlated_noise.launch">
+    <arg name="input_topic" value="/gps/fix" />
+    <arg name="output_topic" value="$(arg noisy_fix_topic)" />
+    <arg name="distance_odom_topic"
+         value="/outdoor_waypoint_nav/odometry/filtered" />
+    <arg name="activation_mode" value="waypoint_interval" />
+    <arg name="noise_start_after_waypoint_index" value="0" />
+    <!-- Keep noise active for the complete route and return to WP1. -->
+    <arg name="noise_stop_at_waypoint_index" value="1000000" />
+    <arg name="alpha" value="$(arg gps_noise_alpha)" />
+    <arg name="innovation_sigma_m"
+         value="$(arg gps_noise_innovation_sigma_m)" />
+  </include>
+
+  <!-- Publish no noisy NavSatFix messages during each OFF window. -->
+  <node pkg="outdoor_waypoint_nav"
+        type="gnss_periodic_gate.py"
+        name="scenario_5_sim_gnss_periodic_gate"
+        output="screen"
+        required="true">
+    <param name="input_topic" value="$(arg noisy_fix_topic)" />
+    <param name="output_topic" value="$(arg gated_fix_topic)" />
+    <!-- gps_waypoint is launched by r/RB and immediately publishes index 0. -->
+    <param name="start_topic"
+           value="/outdoor_waypoint_nav/waypoint_reached_index" />
+    <param name="start_waypoint_index" value="0" type="int" />
+    <param name="available_duration_sec" value="$(arg gps_on_duration_sec)" type="double" />
+    <param name="unavailable_duration_sec" value="$(arg gps_off_duration_sec)" type="double" />
+    <param name="available_topic"
+           value="/outdoor_waypoint_nav/scenario_5/gnss_available" />
+    <param name="outage_active_topic"
+           value="/outdoor_waypoint_nav/scenario_5/gnss_outage_active" />
+    <param name="phase_elapsed_topic"
+           value="/outdoor_waypoint_nav/scenario_5/phase_elapsed_sec" />
+  </node>
+
+  <!-- The only Scenario-5 publisher to the GNSS input used by navsat_transform. -->
+  <node pkg="topic_tools"
+        type="relay"
+        name="scenario_5_sim_gated_gps_to_navsat"
+        args="$(arg gated_fix_topic) $(arg selected_fix_topic)"
+        output="screen" />
+
+  <!-- The standard simulation localization stack does not publish the
+       encoder-only odometry shown as the green path in real-world RViz.
+       Run an isolated copy for Scenario 5 and anchor it to the local EKF. -->
+  <node ns="/outdoor_waypoint_nav"
+        pkg="outdoor_waypoint_nav"
+        type="encoder_odometry_node.py"
+        name="scenario_5_sim_encoder_odometry"
+        output="screen">
+    <param name="wheel_odom_topic" value="/warthog_velocity_controller/odom" />
+    <param name="filtered_odom_topic"
+           value="/outdoor_waypoint_nav/odometry/filtered" />
+    <param name="output_topic"
+           value="/outdoor_waypoint_nav/scenario_5/odometry/encoder" />
+    <param name="imu_topic" value="/imu/data" />
+    <param name="align_yaw_to_imu" value="true" type="bool" />
+    <param name="imu_anchor_timeout_sec" value="5.0" type="double" />
+  </node>
+
+  <!-- Reuse the simulation controls without their normal clean-GPS relay. -->
+  <include file="$(find outdoor_waypoint_nav)/launch/include/experiment_control_and_evaluation.launch">
+    <arg name="joy_control_launch"
+         value="$(find outdoor_waypoint_nav)/launch/simulation/joy_launch_control_scenario_5_sim.launch" />
+    <arg name="evaluation_enabled" value="$(arg evaluation_enabled)" />
+    <!-- Keep Terminal 2 alive after the PNG report has been written. -->
+    <arg name="evaluation_required" value="false" />
+    <arg name="evaluation_shutdown_after_report" value="false" />
+    <arg name="evaluation_output_dir" value="$(arg evaluation_output_dir)" />
+    <arg name="evaluation_show_plot" value="$(arg evaluation_show_plot)" />
+    <arg name="evaluation_finish_delay_sec" value="$(arg evaluation_finish_delay_sec)" />
+    <arg name="evaluation_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="evaluation_encoder_odom_topic"
+         value="/outdoor_waypoint_nav/scenario_5/odometry/encoder" />
+    <arg name="evaluation_start_on_waypoint_index_zero" value="true" />
+    <arg name="evaluation_show_summary_panel" value="false" />
+    <arg name="evaluation_show_title" value="false" />
+    <arg name="evaluation_legend_below" value="false" />
+    <arg name="evaluation_legend_inside_right" value="true" />
+    <arg name="evaluation_legend_rows" value="4" />
+    <arg name="evaluation_global_ekf_color" value="#dc2626" />
+    <arg name="evaluation_plot_local_ekf" value="true" />
+    <arg name="evaluation_local_ekf_topic"
+         value="/outdoor_waypoint_nav/odometry/filtered" />
+    <arg name="evaluation_local_ekf_color" value="#2563eb" />
+    <arg name="evaluation_gps_sample_min_period"
+         value="$(arg gps_plot_sample_min_period_sec)" />
+    <arg name="trajectory_logging_enabled" value="$(arg trajectory_logging_enabled)" />
+    <arg name="trajectory_output_dir" value="$(arg trajectory_output_dir)" />
+    <arg name="trajectory_run_naming_mode" value="$(arg trajectory_run_naming_mode)" />
+    <arg name="trajectory_waypoint_file" value="$(arg waypoint_file)" />
+    <arg name="trajectory_outage_active_topic"
+         value="/outdoor_waypoint_nav/scenario_5/gnss_outage_active" />
+    <arg name="trajectory_scenario_name" value="scenario_5_periodic_gnss_sim" />
+    <arg name="trajectory_scenario_metadata"
+         value="environment=simulation_open_no_obstacles;navigation=direct_waypoint_drive;stop_at=final_waypoint;shutdown_after_report=false;gps_cycle=periodic_after_waypoint_run_start;gps_initial_state=on;gps_on_sec=$(arg gps_on_duration_sec);gps_off_sec=$(arg gps_off_duration_sec);gps_noise_model=ar1;gps_noise_alpha=$(arg gps_noise_alpha);gps_noise_innovation_sigma_m=$(arg gps_noise_innovation_sigma_m)" />
+  </include>
+</launch>

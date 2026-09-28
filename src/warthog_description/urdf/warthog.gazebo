@@ -22,9 +22,9 @@
            while the map EKF can still be pulled back by GPS position updates. -->
       <accelDrift>0.08 0.08 0.08</accelDrift>
       <accelGaussianNoise>0.08 0.08 0.08</accelGaussianNoise>
-      <rateDrift>0.03 0.03 0.24 </rateDrift>
+      <rateDrift>0.05 0.05 0.3 </rateDrift>
       <rateGaussianNoise>0.03 0.03 0.16 </rateGaussianNoise>
-      <headingDrift>0.30</headingDrift>
+      <headingDrift>0.50</headingDrift>
       <headingGaussianNoise>0.08</headingGaussianNoise>
     </plugin>
   </gazebo>

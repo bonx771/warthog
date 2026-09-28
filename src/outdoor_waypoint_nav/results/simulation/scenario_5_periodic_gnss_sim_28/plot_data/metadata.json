@@ -1,0 +1,18 @@
+{
+  "actual": [
+    38.589912845865626,
+    32.1243585278058
+  ],
+  "duration_sec": 384.02000000000004,
+  "final_error_m": 0.1355626924880175,
+  "goal": [
+    38.709839394898154,
+    32.06115357205272
+  ],
+  "line_width_scale": 1.5,
+  "stop_reason": "waypoint completion signal",
+  "target_description": "final waypoint",
+  "target_index": 10,
+  "target_name": "WP11",
+  "trajectory_length_m": 300.38131672237853
+}

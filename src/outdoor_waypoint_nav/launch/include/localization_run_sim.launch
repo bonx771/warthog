@@ -60,6 +60,10 @@
       <param name="gps_correction_fast_motion_speed_mps" value="0.35" />
       <param name="gps_correction_deadband_m" value="0.05" />
       <param name="gps_correction_residual_clip_m" value="3.0" />
+      <!-- At 20 Hz, allow at most one sample period of GPS correction after
+           an outage. Prediction still uses the complete elapsed time. -->
+      <param name="gps_correction_max_dt_sec" value="0.05" />
+      <param name="gps_reacquisition_ramp_sec" value="2.0" />
       <param name="motion_prediction_position_noise_m2_per_m" value="0.02" />
       <param name="motion_prediction_position_noise_m2_per_s" value="0.005" />
       <param name="motion_delta_max_speed_mps" value="5.0" />

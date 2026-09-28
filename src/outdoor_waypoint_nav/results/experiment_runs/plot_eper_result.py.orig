@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""Redraw a real-world experiment directly from a saved run directory.
+
+No ROS master, Gazebo, or launch file is required. Example:
+
+    python3 plot_eper_result.py scenario_1_gnss_normal_20260910_082744
+
+The generated image is saved as ``position_error_redrawn.png`` inside the run
+directory. Use ``--output`` to choose another file and ``--show`` to open it.
+"""
+
+import argparse
+import csv
+import json
+import math
+import os
+import sys
+
+
+GLOBAL_COLOR = "#dc2626"
+LOCAL_COLOR = "#2563eb"
+ENCODER_COLOR = "#16a34a"
+GPS_COLOR = "#d4b000"
+WAYPOINT_COLOR = "#64748b"
+
+
+def _float(row, key, default=None):
+    value = row.get(key, "")
+    if value in (None, ""):
+        return default
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    return result if math.isfinite(result) else default
+
+
+def _int(row, key, default=0):
+    value = _float(row, key, None)
+    return default if value is None else int(value)
+
+
+def _read_csv(path):
+    if not os.path.isfile(path):
+        return []
+    with open(path, "r", newline="", encoding="utf-8") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _read_xy_path(path, x_names=("map_x_m", "x"), y_names=("map_y_m", "y")):
+    points = []
+    for row in _read_csv(path):
+        x_value = next((_float(row, name) for name in x_names if _float(row, name) is not None), None)
+        y_value = next((_float(row, name) for name in y_names if _float(row, name) is not None), None)
+        if x_value is None or y_value is None:
+            continue
+        stamp = _float(row, "stamp_sec", _float(row, "elapsed_sec", 0.0))
+        points.append((x_value, y_value, stamp))
+    return points
+
+
+def _sample_path(points, min_distance=0.03, max_period=0.5):
+    """Match the sampling rule used by position_error.py."""
+    sampled = []
+    for point in points:
+        if not sampled:
+            sampled.append(point)
+            continue
+        last = sampled[-1]
+        moved = math.hypot(point[0] - last[0], point[1] - last[1])
+        elapsed = point[2] - last[2]
+        if moved >= min_distance or elapsed >= max_period:
+            sampled.append(point)
+    return sampled
+
+
+def _load_optional_plot_path(run_dir, filenames):
+    roots = (os.path.join(run_dir, "plot_data"), run_dir)
+    for root in roots:
+        for filename in filenames:
+            path = os.path.join(root, filename)
+            points = _read_xy_path(path)
+            if points:
+                return points, path
+    return [], ""
+
+
+def _load_waypoints(run_dir):
+    rows = _read_csv(os.path.join(run_dir, "waypoints.csv"))
+    result = []
+    for row in rows:
+        x_value = _float(row, "map_x_m", _float(row, "local_east_m"))
+        y_value = _float(row, "map_y_m", _float(row, "local_north_m"))
+        if x_value is not None and y_value is not None:
+            result.append((x_value, y_value))
+    return result
+
+
+def _load_gps(run_dir, min_period=0.1):
+    """Reconstruct the GNSS points seen by a scenario from reference_gnss.csv.
+
+    The logger stores pre-injection map coordinates plus the injected ENU
+    offset. During an outage the selected GPS stream publishes nothing, so
+    those rows are excluded here as well.
+    """
+    saved, source = _load_optional_plot_path(
+        run_dir, ("gps_fixes.csv", "plot_gps_fixes.csv")
+    )
+    if saved:
+        return saved, source
+
+    points = []
+    last_stamp = None
+    path = os.path.join(run_dir, "reference_gnss.csv")
+    for row in _read_csv(path):
+        if _int(row, "valid_fix", 1) != 1 or _int(row, "outage_active", 0) == 1:
+            continue
+        x_value = _float(row, "map_x_m")
+        y_value = _float(row, "map_y_m")
+        stamp = _float(row, "stamp_sec", _float(row, "elapsed_sec", 0.0))
+        if x_value is None or y_value is None:
+            continue
+        if last_stamp is not None and stamp - last_stamp < min_period - 1e-9:
+            continue
+
+        # Scenario 2/5 record the noise injected after the reference GPS.
+        # The simulation map is ENU-aligned, so these offsets reconstruct the
+        # noisy selected fixes used by navsat_transform and the original plot.
+        if _int(row, "noise_active", 0) == 1:
+            x_value += _float(row, "noise_east_m", 0.0)
+            y_value += _float(row, "noise_north_m", 0.0)
+        points.append((x_value, y_value, stamp))
+        last_stamp = stamp
+    return points, path if points else ""
+
+
+def _load_metadata(run_dir):
+    candidates = (
+        os.path.join(run_dir, "plot_data", "metadata.json"),
+        os.path.join(run_dir, "plot_metadata.json"),
+    )
+    for path in candidates:
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                return json.load(handle)
+    return {}
+
+
+def _path_length(points):
+    return sum(
+        math.hypot(points[index][0] - points[index - 1][0], points[index][1] - points[index - 1][1])
+        for index in range(1, len(points))
+    )
+
+
+def _resolve_run_dir(value):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = (value, os.path.join(script_dir, value))
+    for candidate in candidates:
+        path = os.path.abspath(candidate)
+        if os.path.isdir(path):
+            return path
+    raise FileNotFoundError("Run directory not found: {}".format(value))
+
+
+def draw_result(run_dir, output_path, show=False):
+    import matplotlib
+
+    if not show or not os.environ.get("DISPLAY"):
+        matplotlib.use("Agg", force=True)
+    import matplotlib.pyplot as plt
+
+    metadata = _load_metadata(run_dir)
+    global_path, global_source = _load_optional_plot_path(
+        run_dir, ("global_ekf.csv", "plot_global_ekf.csv")
+    )
+    if not global_path:
+        global_source = os.path.join(run_dir, "controller_trajectory.csv")
+        global_path = _sample_path(_read_xy_path(global_source))
+    local_path, local_source = _load_optional_plot_path(
+        run_dir, ("local_ekf.csv", "plot_local_ekf.csv")
+    )
+    encoder_path, encoder_source = _load_optional_plot_path(
+        run_dir, ("encoder_odometry.csv", "plot_encoder_odometry.csv")
+    )
+    gps_path, gps_source = _load_gps(run_dir)
+    waypoints = _load_waypoints(run_dir)
+
+    if len(global_path) < 2:
+        raise RuntimeError("controller/global EKF trajectory is missing or too short")
+    if not waypoints:
+        raise RuntimeError("waypoints.csv contains no usable map coordinates")
+
+    actual = tuple(metadata.get("actual", global_path[-1][:2]))
+    target_index = int(metadata.get("target_index", min(range(len(waypoints)), key=lambda index: math.hypot(actual[0] - waypoints[index][0], actual[1] - waypoints[index][1]))))
+    goal = tuple(metadata.get("goal", waypoints[target_index]))
+    error_x = actual[0] - goal[0]
+    error_y = actual[1] - goal[1]
+    final_error = math.hypot(error_x, error_y)
+    target_name = str(metadata.get("target_name", "WP{}".format(target_index + 1)))
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+    ax.set_xlabel("Map X (m)")
+    ax.set_ylabel("Map Y (m)")
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, alpha=0.35)
+
+    ax.plot(
+        [point[0] for point in global_path],
+        [point[1] for point in global_path],
+        color=GLOBAL_COLOR,
+        linewidth=2.0,
+        label="Global EKF",
+    )
+    if local_path:
+        ax.plot(
+            [point[0] for point in local_path],
+            [point[1] for point in local_path],
+            color=LOCAL_COLOR,
+            linewidth=1.8,
+            linestyle="-.",
+            alpha=0.95,
+            label="Local EKF",
+        )
+    if encoder_path:
+        ax.plot(
+            [point[0] for point in encoder_path],
+            [point[1] for point in encoder_path],
+            color=ENCODER_COLOR,
+            linewidth=1.8,
+            alpha=0.95,
+            label="Encoder odometry",
+        )
+    if gps_path:
+        ax.scatter(
+            [point[0] for point in gps_path],
+            [point[1] for point in gps_path],
+            s=14,
+            color=GPS_COLOR,
+            edgecolors="none",
+            alpha=0.7,
+            zorder=3,
+            label="GPS fixes (available)",
+        )
+
+    waypoint_x = [point[0] for point in waypoints]
+    waypoint_y = [point[1] for point in waypoints]
+    ax.plot(waypoint_x, waypoint_y, "--", color=WAYPOINT_COLOR, linewidth=1.4, label="Waypoint path")
+    ax.scatter(
+        waypoint_x,
+        waypoint_y,
+        s=70,
+        color="#f59e0b",
+        edgecolors="#111827",
+        linewidths=0.8,
+        zorder=5,
+        label="Waypoints",
+    )
+    for index, (x_value, y_value) in enumerate(waypoints, start=1):
+        ax.text(x_value, y_value, "  WP{}".format(index), fontsize=10, weight="bold", color="#111827")
+
+    start = global_path[0]
+    ax.scatter([start[0]], [start[1]], s=90, color="#16a34a", edgecolors="#111827", zorder=6, label="Recording start")
+    ax.scatter([goal[0]], [goal[1]], s=160, marker="*", color="#9333ea", edgecolors="#111827", zorder=7, label="Target {}".format(target_name))
+    ax.scatter([actual[0]], [actual[1]], s=120, marker="X", color="#dc2626", edgecolors="#111827", zorder=7, label="Final vehicle position")
+    ax.plot([goal[0], actual[0]], [goal[1], actual[1]], ":", color="#dc2626", linewidth=2.0, label="Position error to {}".format(target_name))
+
+    error_annotation = ax.text(
+        (goal[0] + actual[0]) * 0.5,
+        (goal[1] + actual[1]) * 0.5,
+        "{:.3f} m".format(final_error),
+        fontsize=10,
+        color="#dc2626",
+        weight="bold",
+        bbox=dict(boxstyle="round,pad=0.25", facecolor="white", edgecolor="#dc2626"),
+    )
+
+    trajectory_length = _path_length(global_path)
+    ax.plot(
+        [], [], linestyle="none", marker="",
+        label="Trajectory length = {:.2f} m".format(trajectory_length),
+    )
+
+    # Match the Scenario-5 result layout: vertical legend at upper right,
+    # inside a right-side band that cannot hide WP8 or its error annotation.
+    x_left, x_right = ax.get_xlim()
+    x_span = max(1e-6, x_right - x_left)
+    ax.set_xlim(x_left, x_right + 0.15 * x_span)
+    legend = ax.legend(
+        loc="upper right",
+        bbox_to_anchor=(0.995, 0.985),
+        ncol=1,
+        fontsize=10,
+        frameon=True,
+        framealpha=0.92,
+    )
+    fig.tight_layout()
+
+    for _ in range(6):
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+        legend_box = legend.get_window_extent(renderer=renderer)
+        error_box = error_annotation.get_window_extent(renderer=renderer)
+        target_px = ax.transData.transform(goal)
+        actual_px = ax.transData.transform(actual)
+
+        def point_overlaps(box, point, padding=18.0):
+            return box.x0 < point[0] + padding and box.x1 > point[0] - padding and box.y0 < point[1] + padding and box.y1 > point[1] - padding
+
+        boxes_overlap = legend_box.x0 < error_box.x1 and legend_box.x1 > error_box.x0 and legend_box.y0 < error_box.y1 and legend_box.y1 > error_box.y0
+        if not (boxes_overlap or point_overlaps(legend_box, target_px) or point_overlaps(legend_box, actual_px)):
+            break
+        x_left, x_right = ax.get_xlim()
+        ax.set_xlim(x_left, x_right + 0.12 * (x_right - x_left))
+        fig.tight_layout()
+
+    fig.savefig(output_path, dpi=160, bbox_inches="tight")
+    if show and os.environ.get("DISPLAY"):
+        plt.show()
+    else:
+        plt.close(fig)
+
+    print("Saved: {}".format(output_path))
+    print("Global EKF: {} samples ({})".format(len(global_path), global_source))
+    print("GPS fixes: {} samples ({})".format(len(gps_path), gps_source or "missing"))
+    print("Final error to {}: {:.3f} m".format(target_name, final_error))
+    if not local_path:
+        print("WARNING: local EKF CSV is absent; the blue line cannot be reconstructed.", file=sys.stderr)
+    else:
+        print("Local EKF: {} samples ({})".format(len(local_path), local_source))
+    if not encoder_path:
+        print("WARNING: encoder CSV is absent; the green line cannot be reconstructed.", file=sys.stderr)
+    else:
+        print("Encoder: {} samples ({})".format(len(encoder_path), encoder_source))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Redraw a saved outdoor_waypoint_nav real-world run from CSV files."
+    )
+    parser.add_argument("run_dir", help="Run directory or its name under results/simulation")
+    parser.add_argument("--output", help="Output PNG path (default: RUN_DIR/position_error_redrawn.png)")
+    parser.add_argument("--show", action="store_true", help="Open the plot after saving when DISPLAY is available")
+    args = parser.parse_args()
+
+    run_dir = _resolve_run_dir(args.run_dir)
+    output = os.path.abspath(args.output) if args.output else os.path.join(run_dir, "position_error_redrawn.png")
+    draw_result(run_dir, output, show=args.show)
+
+
+if __name__ == "__main__":
+    main()

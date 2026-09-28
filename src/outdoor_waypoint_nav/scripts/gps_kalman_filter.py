@@ -187,6 +187,16 @@ class GpsKalmanFilter:
             3.0,
             minimum=0.0,
         )
+        self.gps_correction_max_dt = _finite_float_param(
+            "~gps_correction_max_dt_sec",
+            0.1,
+            minimum=0.0,
+        )
+        self.gps_reacquisition_ramp = _finite_float_param(
+            "~gps_reacquisition_ramp_sec",
+            1.0,
+            minimum=0.0,
+        )
         self.motion_prediction_position_noise_per_m = _finite_float_param(
             "~motion_prediction_position_noise_m2_per_m",
             0.02,
@@ -213,6 +223,7 @@ class GpsKalmanFilter:
         self.latest_motion_position = None
         self.last_motion_position_used = None
         self.last_motion_stamp_used = None
+        self.reacquisition_elapsed = None
 
         self.publisher = rospy.Publisher(self.output_topic, Odometry, queue_size=20)
         self.subscriber = rospy.Subscriber(
@@ -237,7 +248,8 @@ class GpsKalmanFilter:
             "R floor=%.4f m^2, output floor=%.4f m^2, output/input ratio>=%.2f, "
             "publish_rate=%.2f Hz, motion hold=%s, hold skip=%s, "
             "motion aided=%s, gps correction tau=%.2fs max=%.3fm/s "
-            "(fast tau=%.2fs max=%.3fm/s above %.2fm/s)",
+            "(fast tau=%.2fs max=%.3fm/s above %.2fm/s), correction dt<=%.3fs, "
+            "reacquisition ramp=%.2fs",
             self.input_topic,
             self.output_topic,
             self.process_acceleration_noise,
@@ -255,6 +267,8 @@ class GpsKalmanFilter:
             self.gps_correction_fast_time_constant,
             self.gps_correction_fast_max_speed,
             self.gps_correction_fast_motion_speed,
+            self.gps_correction_max_dt,
+            self.gps_reacquisition_ramp,
         )
 
     @staticmethod
@@ -364,6 +378,7 @@ class GpsKalmanFilter:
         )
         self.last_stamp = stamp_sec
         self.consecutive_rejections = 0
+        self.reacquisition_elapsed = None
         self._sync_motion_reference()
 
     def _sync_motion_reference(self):
@@ -511,7 +526,29 @@ class GpsKalmanFilter:
                 residual *= self.gps_correction_residual_clip / residual_norm
                 residual_norm = self.gps_correction_residual_clip
 
+        # Prediction may legitimately span a long GPS outage, but applying
+        # that same elapsed time to the GPS correction would permit one large
+        # position step when fixes resume.  Limit only the correction clock;
+        # motion prediction above still consumes the complete outage delta.
         correction_dt = max(0.0, dt)
+        if self.gps_correction_max_dt > 0.0:
+            correction_dt = min(correction_dt, self.gps_correction_max_dt)
+
+        # Ease the correction in after a long outage. Besides bounding the
+        # position step, this makes correction velocity start at zero so the
+        # global trajectory does not acquire a visible corner on reacquisition.
+        if self.reacquisition_elapsed is not None:
+            if self.gps_reacquisition_ramp <= 0.0:
+                self.reacquisition_elapsed = None
+            else:
+                ramp_scale = min(
+                    1.0,
+                    self.reacquisition_elapsed / self.gps_reacquisition_ramp,
+                )
+                self.reacquisition_elapsed += correction_dt
+                correction_dt *= ramp_scale
+                if self.reacquisition_elapsed >= self.gps_reacquisition_ramp:
+                    self.reacquisition_elapsed = None
         correction_tau, correction_max_speed = self._gps_correction_limits()
         if correction_tau <= 0.0:
             gain = 1.0
@@ -753,6 +790,7 @@ class GpsKalmanFilter:
                 "GPS Kalman continuing after %.2fs GPS gap using motion-aided smoothing.",
                 dt,
             )
+            self.reacquisition_elapsed = 0.0
 
         update_mode = "normal"
         if hold_active and self.hold_skip_measurement_update:
